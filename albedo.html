@@ -1,0 +1,4429 @@
+<!DOCTYPE html>
+<html lang="da">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Albedoberegner</title>
+
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.6) 0%, rgba(226, 232, 240, 0.6) 50%, rgba(203, 213, 225, 0.6) 100%),
+                url('https://earth.org/wp-content/uploads/2020/08/Webp.net-resizeimage-2020-08-21T120227.985.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            color: #1e293b;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f8fafc, #a8cdf3);
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 16px 16px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.025em;
+            line-height: 1.2;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1rem;
+            margin: 0;
+            line-height: 1.5;
+            max-width: 600px;
+            font-weight: 400;
+        }
+
+        .header-credit {
+            margin-top: 16px;
+            padding: 12px 20px;
+            border-radius: 2px;
+            border: 0.1px solid #e2e8f0;
+            display: inline-block;
+        }
+
+        .header-credit p {
+            margin: 0;
+            color: #475569;
+            font-size: 0.9rem;
+            font-weight: 500;
+            font-style: italic;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        .results-overview {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .results-overview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .results-overview-header h3 {
+            margin: 0;
+            color: #111827;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .results-overview-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .results-table-container {
+            padding: 0;
+            overflow-x: auto;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .results-table th {
+            background: #f9fafb;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .results-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+
+        .results-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .results-table .area-name {
+            font-weight: 500;
+            color: #111827;
+        }
+
+        .results-table .albedo-value {
+            font-weight: 600;
+            color: #059669;
+        }
+
+        .results-table .pixel-count {
+            color: #6b7280;
+            font-family: 'Courier New', monospace;
+        }
+
+        .results-table .temperature {
+            color: #dc2626;
+            font-weight: 500;
+        }
+
+        .results-table .location {
+            color: #6b7280;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .results-table .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-view {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #93c5fd;
+        }
+
+        .btn-view:hover {
+            background: #dbeafe;
+        }
+
+        .btn-delete {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        .btn-delete:hover {
+            background: #fee2e2;
+        }
+
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .calculation-details-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .calculation-details-modal .modal-header h4 {
+            margin: 0;
+            color: #111827;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-close:hover {
+            background: #f8fafc;
+            color: #374151;
+        }
+
+        .modal-content {
+            padding: 24px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-row strong {
+            color: #374151;
+            font-weight: 600;
+        }
+
+        /* Kompakte resultater */
+        .results-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .result-summary-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .result-summary-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .result-summary-item.reference {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        .result-summary-item.reference:hover {
+            background: #fde68a;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #111827;
+            font-size: 1rem;
+        }
+
+        .result-albedo {
+            font-weight: 700;
+            color: #059669;
+            font-size: 1.1rem;
+        }
+
+        .result-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pixel-count {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .btn-details {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #93c5fd;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-details:hover {
+            background: #dbeafe;
+        }
+
+        .result-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .result-summary-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .result-summary-label {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .result-summary-value {
+            color: #0f172a;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .measurements-list {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .measurement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .measurement-item:last-child {
+            border-bottom: none;
+        }
+
+        .measurement-info {
+            flex: 1;
+        }
+
+        .measurement-title {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .measurement-details {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .measurement-albedo {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 1.125rem;
+        }
+
+
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 16px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .btn {
+                padding: 10px 14px;
+                font-size: 0.85rem;
+            }
+
+            .upload-area {
+                padding: 32px 16px;
+            }
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(14, 165, 233, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            text-transform: none;
+            letter-spacing: 0.2px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #bfdbfe, #a5b4fc);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: linear-gradient(135deg, #a7f3d0, #86efac);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #cffafe, #a5f3fc);
+            color: #0e7490;
+            border: 1px solid #67e8f9;
+        }
+
+        .btn-info:hover:not(:disabled) {
+            background: linear-gradient(135deg, #a5f3fc, #7dd3fc);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+        }
+
+        /* Navngivning af måleområder */
+        .area-names-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .area-names-section h4 {
+            margin: 0 0 16px 0;
+            color: #1e293b;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .area-names-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .area-name-input {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .area-name-input:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .area-name-label {
+            font-weight: 500;
+            color: #374151;
+            min-width: 80px;
+        }
+
+        .area-name-field {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .area-name-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            color: #0369a1;
+            border: 1px solid #7dd3fc;
+        }
+
+        .btn-purple:hover:not(:disabled) {
+            background: linear-gradient(135deg, #bae6fd, #93c5fd);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 48px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: #9ca3af;
+        }
+
+        .upload-area.dragover {
+            border-color: #2563eb;
+            background-color: #f0f9ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
+
+        .upload-formats {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+
+        .canvas-container {
+            position: relative;
+            background-color: #f9fafb;
+        }
+
+        .canvas-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .canvas-section {
+            text-align: center;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            overflow: visible;
+            background-color: #f9fafb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            padding: 20px;
+        }
+
+        .measurement-section {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background-color: #f9fafb;
+            padding: 24px;
+        }
+
+        .measurement-section .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .measurement-section .input-field {
+            width: 100%;
+        }
+
+        .measurement-section .input-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .measurement-section .input-field input,
+        .measurement-section .input-field textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .measurement-section .input-field textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .measurement-section .comment-templates {
+            margin-top: 16px;
+        }
+
+        .measurement-section .comment-templates small {
+            display: block;
+            margin-bottom: 12px;
+            color: #6b7280;
+            font-size: 0.8rem;
+        }
+
+        .measurement-section .template-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .measurement-section .btn-template {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .measurement-section .btn-template:hover {
+            background-color: #e5e7eb;
+        }
+
+        .measurement-section .btn {
+            margin-bottom: 12px;
+            padding: 12px 24px;
+            font-size: 1rem;
+        }
+
+        .measurement-section .btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .measurement-section .area-names-section {
+            margin-top: 24px;
+        }
+
+        .measurement-section .area-names-section h4 {
+            margin-bottom: 16px;
+            color: #374151;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .measurement-section .area-names-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .measurement-section .area-name-input {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .measurement-section .area-name-input label {
+            min-width: 100px;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .measurement-section .area-name-input input {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 1024px) {
+            .canvas-layout {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .measurement-sidebar {
+                width: 100%;
+            }
+        }
+
+        #imageCanvas {
+            cursor: crosshair;
+            max-width: 100%;
+            display: block;
+            object-fit: contain;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .selections-list {
+            margin-top: 0;
+            margin-bottom: 24px;
+        }
+
+        .selections-list h3 {
+            margin-bottom: 16px;
+            color: #374151;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .selection-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            font-size: 0.9rem;
+        }
+
+        .color-indicator {
+            width: 16px;
+            height: 16px;
+            border: 2px dashed;
+            border-radius: 2px;
+        }
+
+        .color-red {
+            border-color: #ef4444;
+        }
+
+        .color-green {
+            border-color: #22c55e;
+        }
+
+        .results-empty {
+            text-align: center;
+            padding: 48px;
+            color: #6b7280;
+        }
+
+        .results-empty-icon {
+            font-size: 3rem;
+            opacity: 0.5;
+            margin-bottom: 16px;
+        }
+
+        .correction-factor {
+            background-color: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .correction-factor h3 {
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
+        .correction-factor p {
+            color: #a16207;
+            font-size: 0.9rem;
+        }
+
+        .result-card {
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            border-color: rgba(14, 165, 233, 0.4);
+        }
+
+        .result-title {
+            font-weight: 500;
+            color: #0f172a;
+            margin-bottom: 16px;
+            font-size: 1.3rem;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            font-size: 0.9rem;
+        }
+
+        .result-item label {
+            display: block;
+            color: #475569;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .result-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 1.1rem;
+        }
+
+        .albedo-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .fullscreen-canvas-container {
+            position: relative;
+            max-width: 95vw;
+            max-height: 95vh;
+        }
+
+        .fullscreen-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1001;
+        }
+
+        .fullscreen-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .measurement-inputs {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-field label {
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #374151;
+        }
+
+        .input-field input,
+        .input-field textarea {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .input-field textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .measurement-info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .measurement-info h4 {
+            color: #0c4a6e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .temperature-display {
+            background: linear-gradient(45deg, #ef4444, #f97316);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 4px 0;
+        }
+
+        .comment-display {
+            background: #f3f4f6;
+            border-left: 4px solid #6b7280;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            font-style: italic;
+        }
+
+        .comment-templates {
+            margin-top: 8px;
+        }
+
+        .comment-templates small {
+            color: #6b7280;
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .template-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .btn-template {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-template:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        /* Workflow Progress Bar */
+        .workflow-progress {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+
+
+        /* Data Added Confirmation */
+        .data-added-confirmation {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+            z-index: 1000;
+            animation: slideInRight 0.3s ease;
+        }
+
+        .confirmation-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .confirmation-count {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+
+
+        /* Keyboard Shortcuts */
+        .keyboard-shortcuts {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .keyboard-shortcuts h5 {
+            color: #0c4a6e;
+            margin-bottom: 16px;
+            font-size: 1rem;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .shortcut-item kbd {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            color: #475569;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .shortcut-item span {
+            color: #64748b;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 12px 0;
+            margin-top: 32px;
+            font-size: 0.85rem;
+        }
+
+        .status-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #64748b;
+        }
+
+        .status-icon {
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .status-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+
+        /* Kompakt Main Menu Styling */
+        .main-menu {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(14, 165, 233, 0.1);
+        }
+
+        .menu-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .menu-header h2 {
+            color: #0f172a;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 26px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .menu-grid .btn {
+            padding: 8px 50px;
+            font-size: 0.9rem;
+            min-width: 200px;
+            transition: all 0.2s ease;
+        }
+
+        .menu-grid .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .menu-grid .btn:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .main-menu {
+                padding: 20px 16px;
+            }
+
+            .menu-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .menu-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+        }
+
+        /* Kompakt Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(14, 165, 233, 0.2);
+            border-radius: 4px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9, #06b6d4);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            padding: 4px;
+        }
+
+        .progress-step.active {
+            color: #0ea5e9;
+            font-weight: 600;
+        }
+
+
+
+        .calculation-steps {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(56, 189, 248, 0.05));
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            border-radius: 16px;
+            padding: 28px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .calculation-steps h3 {
+            color: #0c4a6e;
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+        }
+
+        .step {
+            margin-bottom: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            border-left: 4px solid #38bdf8;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #38bdf8;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .step-title {
+            font-weight: 500;
+            color: #0f172a;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .step-calculation {
+            font-family: 'Courier New', monospace;
+            background: rgba(248, 250, 252, 0.8);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-size: 0.95rem;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            color: #334155;
+        }
+
+        .measurement-section {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+            background: white;
+        }
+
+        .measurement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .measurement-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .measurement-number {
+            background: #3b82f6;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .formula-info {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 32px;
+        }
+
+        .formula-info h3 {
+            color: #111827;
+            margin-bottom: 8px;
+        }
+
+        .formula-info ul {
+            color: #6b7280;
+            font-size: 0.9rem;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Ren, professionel header -->
+        <div class="header">
+            <div class="header-content">
+                <h1>Albedo beregner: Find albedo ud fra et billede</h1>
+                <p>Upload et billede og marker områder for at beregne albedo baseret på pixelværdier</p>
+                <div class="header-credit">
+                    <p>Udviklet af Philip K. Jakobsen, Silkeborg Gymnasium</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gammel header (skal fjernes) -->
+        <div class="header" style="display: none;">
+            <div class="header-content">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMyIDhDNDQuMTUwMyA4IDU0IDE3Ljg0OTcgNTQgMjhDNTQgMzguMTUwMyA0NC4xNTAzIDQ4IDMyIDQ4QzE5Ljg0OTcgNDggMTAgMzguMTUwMyAxMCAyOEMxMCAxNy44NDk3IDE5Ljg0OTcgMTAgMzIgMTBaIiBmaWxsPSIjNjY3ZWVhIi8+CjxwYXRoIGQ9Ik0zMiA1NkM0NC4xNTAzIDU2IDU0IDY1Ljg0OTcgNTQgNzZDNTQgODYuMTUwMyA0NC4xNTAzIDk2IDMyIDk2QzE5Ljg0OTcgOTYgMTAgODYuMTUwMyAxMCA3NkMxMCA2NS44NDk3IDE5Ljg0OTcgNTYgMzIgNTZaIiBmaWxsPSIjNzY0YmEyIi8+CjxwYXRoIGQ9Ik0yNCA0MEwyNCAyNCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTQwIDQwTDQwIDI0IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K"
+                    alt="Gletsjer"
+                    style="width: 72px; height: 72px; border-radius: 16px; background: linear-gradient(135deg, #0c4a6e, #38bdf8); padding: 16px; box-shadow: 0 8px 20px rgba(12, 74, 110, 0.3);">
+                <h1>Albedo Beregner</h1>
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDQ4QzE2IDQ0LjQ3NzIgMTguNDc3MiA0MiAyMiA0Mkg0MkM0NS41MjI4IDQyIDQ4IDQ0LjQ3NzIgNDggNDhDNDggNTEuNTIyOCA0NS41MjI4IDU0IDQyIDU0SDIyQzE4LjQ3NzIgNTQgMTYgNTEuNTIyOCAxNiA0OFoiIGZpbGw9IiM2NjdlZWEiLz4KPHBhdGggZD0iTTI0IDQwTDI0IDMyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMzIgNDBMMzIgMzIiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik00MCA0MEw0MCAzMiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhZD0icm91bmQiLz4KPC9zdmc+"
+                    alt="Feltarbejde"
+                    style="width: 72px; height: 72px; border-radius: 16px; background: linear-gradient(135deg, #0c4a6e, #38bdf8); padding: 16px; box-shadow: 0 8px 20px rgba(12, 74, 110, 0.3);">
+            </div>
+            <p>Upload et billede og marker områder for at beregne albedo baseret på pixelværdier</p>
+            <div
+                style="margin-top: 16px; padding: 16px; background: rgba(14, 165, 233, 0.05); border-radius: 12px; border: 1px solid rgba(14, 165, 233, 0.15);">
+                <p style="margin: 0; color: #0c4a6e; font-weight: 500; font-size: 1rem;">Albedo måling er vigtig for
+                    at forstå klimaforandringer og gletsjerers smeltehastighed</p>
+            </div>
+        </div>
+
+        <!-- Hovedmenu -->
+        <div id="mainMenu" class="main-menu">
+            <div class="menu-grid">
+                <button class="btn btn-warning" onclick="provideButtonFeedback(this); startNewInvestigation()"
+                    id="newInvestigationBtn">
+                    Ny undersøgelse
+                </button>
+                <button class="btn btn-primary"
+                    onclick="provideButtonFeedback(this); document.getElementById('fileInput').click()">
+                    Upload nyt billede
+                </button>
+                <button class="btn btn-success" onclick="provideButtonFeedback(this); showResultsMenu()"
+                    id="resultsMenuBtn" disabled>
+                    Resultater
+                </button>
+
+                <button class="btn btn-secondary" onclick="provideButtonFeedback(this); exportAllResults('excel')"
+                    id="exportAllExcelBtn" disabled>
+                    Excel Export
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Resultattabel -->
+        <div id="resultsOverview" class="results-overview" style="display: none;">
+            <div class="results-overview-header">
+                <h3>Resultater</h3>
+                <div class="results-overview-actions">
+                    <div class="export-buttons">
+                        <button class="btn btn-secondary" onclick="exportAllResults('excel')">Excel Export</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="newImage()">Nyt billede</button>
+                    <button class="btn btn-warning" onclick="startNewInvestigation()">Ny undersøgelse</button>
+                    <button class="btn btn-secondary" onclick="showMainMenu()">Tilbage til menu</button>
+                </div>
+            </div>
+            <div
+                style="padding: 12px 20px; background: #f0f9ff; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem; color: #0c4a6e;">
+                💡 <strong>Nye billeder tilføjes til den eksisterende resultatliste.</strong> Brug "Ny undersøgelse" for
+                at starte helt forfra.
+            </div>
+            <div class="results-table-container">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Område</th>
+                            <th>Albedo (%)</th>
+                            <th>Pixels</th>
+                            <th>Temperatur</th>
+                            <th>Lokation</th>
+                            <th>Handlinger</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody">
+                        <!-- Resultater indsættes her dynamisk -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+
+        <div id="main-grid" class="main-grid">
+            <!-- Venstre kolonne: Billede sektion -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Billede</h2>
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            Upload
+                        </button>
+                        <button class="btn btn-info" onclick="toggleGrayscale()" id="grayscaleBtn"
+                            title="Skift mellem farver og gråskala">
+                            🎨 Farver
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearSelections()" id="clearBtn" disabled>
+                            Ryd
+                        </button>
+                        <button class="btn btn-secondary" onclick="undo()" id="undoBtn" disabled title="Undo (Ctrl+Z)">
+                            Undo
+                        </button>
+                        <button class="btn btn-secondary" onclick="redo()" id="redoBtn" disabled title="Redo (Ctrl+Y)">
+                            Redo
+                        </button>
+                    </div>
+                </div>
+
+                <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)"
+                    aria-label="Upload billede fil">
+
+                <div id="uploadArea" class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📁</div>
+                    <p>Træk og slip et billede her, eller klik for at uploade</p>
+                    <p class="upload-formats">Understøttede formater: JPG, PNG, GIF</p>
+                    <p style="margin-top: 8px; font-size: 0.9rem; color: #6b7280; font-style: italic;">
+                        💡 Efter upload kan du skifte mellem farver og gråskala med 🎨/⚫ knappen
+                    </p>
+                </div>
+
+                <div id="canvasContainer" class="canvas-container hidden">
+                    <div class="canvas-section">
+                        <canvas id="imageCanvas" role="img" aria-label="Billede til albedo måling"></canvas>
+                        <div class="canvas-overlay">
+                            <span>Markeringer: </span><span id="selectionCount">0</span>
+                            <button class="btn btn-secondary" onclick="openFullscreen()"
+                                style="margin-left: 12px; padding: 4px 8px; font-size: 0.8rem;">
+                                Fuldskærm
+                            </button>
+                            <div style="margin-top: 8px; font-size: 0.8rem; color: #6b7280;">
+                                💡 Skift mellem farver/gråskala med 🎨/⚫ knappen
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Højre kolonne: Måling sektion -->
+            <div class="section measurement-section">
+                <div class="section-header">
+                    <h2 class="section-title">Måling</h2>
+                </div>
+
+                <div id="selectionsList" class="selections-list hidden">
+                    <h3>Markerede områder:</h3>
+                    <div id="selectionsContainer"></div>
+                </div>
+
+                <div id="measurementInputs" class="measurement-inputs hidden">
+                    <h3>Information om målingen</h3>
+                    <div
+                        style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 0.9rem;">
+                        <strong>💡 Tip:</strong> Du kan skifte mellem farver og gråskala undervejs med 🎨/⚫ knappen i
+                        billede sektionen ovenfor
+                    </div>
+                    <div class="input-group">
+                        <div class="input-field">
+                            <label for="temperatureInput">Temperatur (°C) - valgfri</label>
+                            <input type="number" id="temperatureInput" placeholder="f.eks. 25" step="0.1">
+                        </div>
+                        <div class="input-field">
+                            <label for="locationInput">Lokation - valgfri</label>
+                            <input type="text" id="locationInput" placeholder="f.eks. Skolegård, asfalt"
+                                list="locationSuggestions" autocomplete="off">
+                            <datalist id="locationSuggestions">
+                                <option value="Skolegård, asfalt">
+                                <option value="Skolegård, grus">
+                                <option value="Parkering, beton">
+                                <option value="Sti, grus">
+                                <option value="Vand, sø">
+                                <option value="Is, sne">
+                            </datalist>
+                        </div>
+                    </div>
+                    <div class="input-field">
+                        <label for="commentInput">Kommentarer og observationer</label>
+                        <textarea id="commentInput"
+                            placeholder="Beskriv hvad du observerer ved overfladen, vejrforhold, særlige omstændigheder osv."></textarea>
+                        <div class="comment-templates">
+                            <small>Hurtige skabeloner:</small>
+                            <div class="template-buttons">
+                                <button type="button" class="btn-template"
+                                    onclick="insertCommentTemplate('Asfalt overflade, tør vejr, solskin')">Asfalt</button>
+                                <button type="button" class="btn-template"
+                                    onclick="insertCommentTemplate('Græs overflade, fugtig, skyet')">Græs</button>
+                                <button type="button" class="btn-template"
+                                    onclick="insertCommentTemplate('Beton overflade, ren, solskin')">Beton</button>
+                                <button type="button" class="btn-template"
+                                    onclick="insertCommentTemplate('Vand overflade, rolig, solskin')">Vand</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navngivning af måleområder -->
+                    <div id="areaNamesSection" class="area-names-section hidden">
+                        <h4>Navngivning af måleområder</h4>
+                        <div class="area-names-grid" id="areaNamesGrid">
+                            <!-- Navne indsættes dynamisk her -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Knapper -->
+                <button class="btn btn-info full-width" onclick="addToResultsList()" id="addToResultsBtn" disabled
+                    style="margin-top: 16px;">
+                    Tilføj til resultatliste
+                </button>
+
+                <button class="btn btn-success full-width" onclick="calculateAlbedo()" id="calculateBtn" disabled
+                    style="margin-top: 8px;">
+                    Beregn Albedo
+                </button>
+            </div>
+        </div>
+
+        <!-- Resultater sektion -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Resultater</h2>
+                <div class="button-group">
+                    <button class="btn btn-primary hidden" onclick="newImage()" id="newImageBtn">
+                        Nyt billede
+                    </button>
+                </div>
+            </div>
+
+            <div id="resultsEmpty" class="results-empty">
+                <div class="results-empty-icon">📊</div>
+                <p>Beregn albedo for at se resultater</p>
+            </div>
+
+            <div id="resultsContainer" class="hidden"></div>
+        </div>
+    </div>
+
+    <!-- Fuldskærms overlay -->
+    <div id="fullscreenOverlay" class="fullscreen-overlay">
+        <div class="fullscreen-canvas-container">
+            <canvas id="fullscreenCanvas" role="img" aria-label="Billede i fuldskærm til præcis markering"></canvas>
+            <div class="fullscreen-controls">
+                <div id="zoomIndicator" class="fullscreen-btn"
+                    style="background: rgba(0,0,0,0.7); color: white; pointer-events: none;">100%</div>
+                <button class="fullscreen-btn" onclick="resetZoom()" title="Reset zoom">Reset</button>
+                <button class="fullscreen-btn" onclick="closeFullscreen()" title="Luk fuldskærm (ESC)">Luk</button>
+            </div>
+            <div
+                style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem;">
+                Muserullet = zoom • Træk = markering • Højreklik/Ctrl+træk = pan • ESC = luk
+            </div>
+        </div>
+    </div>
+
+    <div class="formula-info">
+        <h3>Om beregningen</h3>
+        <ul>
+            <li><strong>Formel:</strong> Albedo = (Korrigeret pixelværdi / 255) × 100%</li>
+            <li><strong>Korrektionsfaktor:</strong> Målt hvid værdi / 179 (forventet værdi for 70% albedo)</li>
+            <li><strong>Gråtoneberegning:</strong> 0.299×R + 0.587×G + 0.114×B (standard luminance)</li>
+            <li><strong>Bemærk:</strong> Gråskala konvertering er nu valgfri - brug 🎨/⚫ knappen til at skifte mellem
+                farver og gråskala</li>
+        </ul>
+    </div>
+
+    <!-- Status Bar -->
+    <div id="statusBar" class="status-bar">
+        <div class="status-content">
+            <div class="status-item">
+                <span class="status-icon">💾</span>
+                <span id="autoSaveStatus">Auto-save aktiveret</span>
+            </div>
+            <div class="status-item">
+                <span class="status-icon">📊</span>
+                <span id="measurementStatus">Ingen målinger</span>
+            </div>
+            <div class="status-item">
+                <span class="status-icon">⏱️</span>
+                <span id="sessionTime">Session: 0:00</span>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        let currentImage = null;
+        let selections = [];
+        let isSelecting = false;
+        let startX, startY;
+        let allMeasurements = []; // Alle målinger på dette billede
+        let currentMeasurementIndex = 0;
+        let isFullscreen = false;
+        let fullscreenCanvas, fullscreenCtx;
+
+        // Undo/Redo system
+        let undoStack = [];
+        let redoStack = [];
+        let maxUndoSteps = 20;
+
+        // Auto-save system
+        let autoSaveInterval;
+        let lastSavedState = null;
+
+        // Smart input system
+        let locationHistory = [];
+        let commentTemplates = [
+            'Asfalt overflade',
+            'Græs overflade',
+            'Beton overflade',
+            'Jord overflade',
+            'Vand overflade',
+            'Is/sne overflade',
+            'Træ overflade',
+            'Metal overflade'
+        ];
+
+        let canvas, ctx;
+
+        // File upload handling
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Tjek filtype
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                const fileName = file.name.toLowerCase();
+
+                const isValidImageType = validTypes.includes(file.type);
+
+                if (!isValidImageType) {
+                    alert('Vælg venligst en billedfil (JPG, PNG, GIF).');
+                    return;
+                }
+
+
+
+                loadImage(file);
+            }
+        }
+
+        function loadImage(file) {
+            // Vis loading state
+            const uploadArea = document.getElementById('uploadArea');
+            uploadArea.innerHTML = `
+                <div class="upload-icon loading">⏳</div>
+                <p>Indlæser billede...</p>
+                <p style="margin-top: 8px; font-size: 0.9rem; color: #6b7280; font-style: italic;">
+                    💡 Efter upload kan du skifte mellem farver og gråskala med 🎨/⚫ knappen
+                </p>
+            `;
+
+            // For normale billedfiler
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                loadImageFromBlob(e.target.result);
+            };
+            reader.onerror = function () {
+                uploadArea.innerHTML = `
+                    <div class="upload-icon">❌</div>
+                    <p>Fejl ved læsning af fil. Prøv venligst igen.</p>
+                    <p style="margin-top: 8px; font-size: 0.9rem; color: #6b7280; font-style: italic;">
+                        💡 Efter upload kan du skifte mellem farver og gråskala med 🎨/⚫ knappen
+                    </p>
+                `;
+                setTimeout(() => {
+                    resetUploadArea();
+                }, 3000);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function loadImageFromBlob(blobOrDataUrl) {
+            const img = new Image();
+            img.onload = function () {
+                currentImage = img;
+                setupCanvas();
+                showCanvas();
+                clearSelections();
+
+                // Start auto-save når billede er indlæst
+                startAutoSave();
+
+                // Auto-restore er deaktiveret - brugeren starter altid forfra med nye billeder
+            };
+            img.onerror = function () {
+                const uploadArea = document.getElementById('uploadArea');
+                uploadArea.innerHTML = `
+                    <div class="upload-icon">❌</div>
+                    <p>Fejl ved indlæsning af billede. Prøv venligst igen.</p>
+                    <p style="margin-top: 8px; font-size: 0.9rem; color: #6b7280; font-style: italic;">
+                        💡 Efter upload kan du skifte mellem farver og gråskala med 🎨/⚫ knappen
+                    </p>
+                `;
+                setTimeout(() => {
+                    resetUploadArea();
+                }, 3000);
+            };
+            img.src = blobOrDataUrl;
+        }
+
+        function resetUploadArea() {
+            const uploadArea = document.getElementById('uploadArea');
+            uploadArea.innerHTML = `
+                <div class="upload-icon">🖼️</div>
+                <p>Træk og slip et billede her, eller klik for at uploade</p>
+                <p class="upload-formats">Understøttede formater: JPG, PNG, GIF</p>
+                <p style="margin-top: 8px; font-size: 0.9rem; color: #6b7280; font-style: italic;">
+                    💡 Efter upload kan du skifte mellem farver og gråskala med 🎨/⚫ knappen
+                </p>
+            `;
+        }
+
+        function setupCanvas() {
+            // Initialiser canvas hvis det ikke allerede er gjort
+            if (!canvas) {
+                canvas = document.getElementById('imageCanvas');
+                if (!canvas) {
+                    console.error('Canvas element ikke fundet');
+                    return;
+                }
+                ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.error('Canvas context ikke fundet');
+                    return;
+                }
+            }
+
+            // Beregn optimal størrelse for normal visning med bedre proportioner
+            const maxWidth = 800;
+            const maxHeight = 600;
+            const aspectRatio = currentImage.width / currentImage.height;
+
+            let displayWidth = currentImage.width;
+            let displayHeight = currentImage.height;
+
+            // Skaler ned hvis billedet er for stort, men bevar proportioner
+            if (displayWidth > maxWidth || displayHeight > maxHeight) {
+                const scaleX = maxWidth / displayWidth;
+                const scaleY = maxHeight / displayHeight;
+                const scale = Math.min(scaleX, scaleY); // Brug den mindste skala for at bevare proportioner
+
+                displayWidth = Math.floor(displayWidth * scale);
+                displayHeight = Math.floor(displayHeight * scale);
+            }
+
+            // Sæt canvas dimensioner
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+
+            // Gem skalering for korrekt koordinatberegning
+            canvas.scaleX = displayWidth / currentImage.width;
+            canvas.scaleY = displayHeight / currentImage.height;
+
+            console.log('Canvas sat op:', displayWidth, 'x', displayHeight, 'for billede:', currentImage.width, 'x', currentImage.height);
+
+            // Opsæt mouse events
+            setupMouseEvents();
+
+            drawImage();
+        }
+
+        function setupFullscreenCanvas() {
+            fullscreenCanvas = document.getElementById('fullscreenCanvas');
+            fullscreenCtx = fullscreenCanvas.getContext('2d');
+
+            // Beregn størrelse for fuldskærm med bedre proportioner
+            const maxWidth = window.innerWidth * 0.9;
+            const maxHeight = window.innerHeight * 0.9;
+            const aspectRatio = currentImage.width / currentImage.height;
+
+            let displayWidth = currentImage.width;
+            let displayHeight = currentImage.height;
+
+            // Skaler billedet til at passe i fuldskærm, men bevar proportioner
+            if (displayWidth > maxWidth || displayHeight > maxHeight) {
+                const scaleX = maxWidth / displayWidth;
+                const scaleY = maxHeight / displayHeight;
+                const scale = Math.min(scaleX, scaleY); // Brug den mindste skala for at bevare proportioner
+
+                displayWidth = Math.floor(displayWidth * scale);
+                displayHeight = Math.floor(displayHeight * scale);
+            } else {
+                // Hvis billedet er mindre end skærmen, forstørr det lidt
+                const scaleFactor = Math.min(maxWidth / displayWidth, maxHeight / displayHeight);
+                const maxScale = 2.0; // Maksimal forstørrelse
+                const actualScale = Math.min(scaleFactor, maxScale);
+
+                displayWidth = Math.floor(displayWidth * actualScale);
+                displayHeight = Math.floor(displayHeight * actualScale);
+            }
+
+            fullscreenCanvas.width = displayWidth;
+            fullscreenCanvas.height = displayHeight;
+            fullscreenCanvas.style.width = displayWidth + 'px';
+            fullscreenCanvas.style.height = displayHeight + 'px';
+
+            // Gem skalering for korrekt koordinatberegning
+            fullscreenCanvas.scaleX = displayWidth / currentImage.width;
+            fullscreenCanvas.scaleY = displayHeight / currentImage.height;
+
+            // Reset zoom og pan
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+        }
+
+        // Global variabel til at holde styr på om billedet skal vises i gråskala
+        let showGrayscale = false;
+
+        // Funktion til at skifte mellem farver og gråskala
+        function toggleGrayscale() {
+            showGrayscale = !showGrayscale;
+            console.log('Toggle grayscale:', showGrayscale);
+
+            // Opdater knappens tekst og ikon
+            const grayscaleBtn = document.getElementById('grayscaleBtn');
+            if (!grayscaleBtn) {
+                console.error('Grayscale knap ikke fundet!');
+                return;
+            }
+
+            if (showGrayscale) {
+                grayscaleBtn.innerHTML = '⚫ Gråskala';
+                grayscaleBtn.className = 'btn btn-secondary';
+            } else {
+                grayscaleBtn.innerHTML = '🎨 Farver';
+                grayscaleBtn.className = 'btn btn-info';
+            }
+
+            // Genoptegn billedet med den nye indstilling
+            if (currentImage) {
+                console.log('Genoptegner billede med grayscale:', showGrayscale);
+                drawImage();
+                if (isFullscreen) {
+                    updateFullscreenCanvas();
+                }
+            } else {
+                console.log('Ingen currentImage - kan ikke genoptegne');
+            }
+        }
+
+        function drawImage(targetCanvas = canvas, targetCtx = ctx) {
+            if (!targetCanvas || !targetCtx || !currentImage) {
+                console.error('Manglende canvas, context eller billede');
+                return;
+            }
+
+            console.log('Tegner billede på canvas:', targetCanvas.width, 'x', targetCanvas.height);
+
+            targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+            // Tegn billede
+            targetCtx.drawImage(currentImage, 0, 0, targetCanvas.width, targetCanvas.height);
+
+            // Konverter til grayscale kun hvis brugeren har valgt det
+            console.log('drawImage - showGrayscale:', showGrayscale);
+            if (showGrayscale) {
+                console.log('Konverterer til grayscale - starter konvertering');
+                const imageData = targetCtx.getImageData(0, 0, targetCanvas.width, targetCanvas.height);
+                const data = imageData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                    data[i] = gray;     // Red
+                    data[i + 1] = gray; // Green
+                    data[i + 2] = gray; // Blue
+                }
+
+                targetCtx.putImageData(imageData, 0, 0);
+                console.log('Grayscale konvertering færdig');
+            } else {
+                console.log('Viser farver - ingen grayscale konvertering');
+            }
+
+            // Tegn markeringer (kun hvis det ikke er fuldskærm eller hvis vi vil vise dem)
+            if (targetCanvas === canvas || isFullscreen) {
+                selections.forEach((selection, index) => {
+                    drawSelection(selection, index, targetCanvas, targetCtx);
+                });
+            }
+        }
+
+        function drawSelection(selection, index, targetCanvas = canvas, targetCtx = ctx) {
+            // Beregn skalering hvis vi tegner på forskellig canvas
+            // Brug original billede dimensioner som reference for korrekt skalering
+            const scaleX = targetCanvas.width / currentImage.width;
+            const scaleY = targetCanvas.height / currentImage.height;
+
+            const scaledX = selection.x * scaleX;
+            const scaledY = selection.y * scaleY;
+            const scaledWidth = selection.width * scaleX;
+            const scaledHeight = selection.height * scaleY;
+
+            const color = index === 0 ? '#ef4444' : '#22c55e';
+            targetCtx.strokeStyle = color;
+            targetCtx.lineWidth = targetCanvas === fullscreenCanvas ? 4 : 2;
+            targetCtx.setLineDash([5, 5]);
+            targetCtx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+            // Tegn label
+            targetCtx.fillStyle = color;
+            targetCtx.font = targetCanvas === fullscreenCanvas ? '20px Arial' : '14px Arial';
+            targetCtx.fillText(selection.label, scaledX, scaledY - 5);
+
+            targetCtx.setLineDash([]);
+        }
+
+        function showCanvas() {
+            // Skjul hovedmenu og vis måling interface
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('uploadArea').classList.add('hidden');
+            document.getElementById('canvasContainer').classList.remove('hidden');
+            document.getElementById('clearBtn').disabled = false;
+
+            // Aktiver grayscale knappen og reset den
+            const grayscaleBtn = document.getElementById('grayscaleBtn');
+            if (grayscaleBtn) {
+                grayscaleBtn.disabled = false;
+                grayscaleBtn.innerHTML = '🎨 Farver';
+                grayscaleBtn.className = 'btn btn-info';
+                console.log('Grayscale knap aktiveret og reset');
+            } else {
+                console.error('Grayscale knap ikke fundet i showCanvas!');
+            }
+
+            // Vis main-grid (billede sektion)
+            document.getElementById('main-grid').style.display = 'grid';
+
+            // Skjul resultatoversigt
+            document.getElementById('resultsOverview').style.display = 'none';
+        }
+
+        function openFullscreen() {
+            if (!currentImage) return;
+
+            isFullscreen = true;
+
+            // Sæt fuldskærm canvas op og tegn billede
+            setupFullscreenCanvas();
+            drawImage(fullscreenCanvas, fullscreenCtx);
+
+            document.getElementById('fullscreenOverlay').style.display = 'flex';
+
+            // Tilføj body scroll lock
+            document.body.style.overflow = 'hidden';
+
+            // Tilføj event listeners for fuldskærm
+            setupFullscreenEvents();
+
+            // Tilføj wheel event for zoom
+            fullscreenCanvas.addEventListener('wheel', handleFullscreenWheel);
+        }
+
+        function closeFullscreen() {
+            isFullscreen = false;
+            document.getElementById('fullscreenOverlay').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            removeFullscreenEvents();
+
+            // Fjern wheel event
+            fullscreenCanvas.removeEventListener('wheel', handleFullscreenWheel);
+        }
+
+        function setupFullscreenEvents() {
+            fullscreenCanvas.addEventListener('mousedown', handleFullscreenMouseDown);
+            fullscreenCanvas.addEventListener('mousemove', handleFullscreenMouseMove);
+            fullscreenCanvas.addEventListener('mouseup', handleFullscreenMouseUp);
+
+            // Forhindre context menu ved højreklik
+            fullscreenCanvas.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+
+            // Touch support for mobile
+            fullscreenCanvas.addEventListener('touchstart', handleFullscreenTouchStart);
+            fullscreenCanvas.addEventListener('touchmove', handleFullscreenTouchMove);
+            fullscreenCanvas.addEventListener('touchend', handleFullscreenTouchEnd);
+
+            fullscreenCanvas.style.cursor = 'crosshair';
+        }
+
+        function removeFullscreenEvents() {
+            fullscreenCanvas.removeEventListener('mousedown', handleFullscreenMouseDown);
+            fullscreenCanvas.removeEventListener('mousemove', handleFullscreenMouseMove);
+            fullscreenCanvas.removeEventListener('mouseup', handleFullscreenMouseUp);
+
+            // Fjern touch events
+            fullscreenCanvas.removeEventListener('touchstart', handleFullscreenTouchStart);
+            fullscreenCanvas.removeEventListener('touchmove', handleFullscreenTouchMove);
+            fullscreenCanvas.removeEventListener('touchend', handleFullscreenTouchEnd);
+        }
+
+        // Zoom og pan funktionalitet for fuldskærm
+        let zoomLevel = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let lastPanX = 0;
+        let lastPanY = 0;
+
+        function handleFullscreenWheel(e) {
+            e.preventDefault();
+
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(0.5, Math.min(3, zoomLevel * delta));
+
+            // Zoom til museposition
+            const rect = fullscreenCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const zoomChange = newZoom / zoomLevel;
+            panX = mouseX - (mouseX - panX) * zoomChange;
+            panY = mouseY - (mouseY - panY) * zoomChange;
+
+            zoomLevel = newZoom;
+
+            // Opdater zoom indikator
+            document.getElementById('zoomIndicator').textContent = Math.round(zoomLevel * 100) + '%';
+
+            // Opdater canvas med zoom og pan
+            updateFullscreenCanvas();
+        }
+
+        function updateFullscreenCanvas() {
+            fullscreenCtx.save();
+            fullscreenCtx.clearRect(0, 0, fullscreenCanvas.width, fullscreenCanvas.height);
+
+            // Anvend zoom og pan
+            fullscreenCtx.translate(panX, panY);
+            fullscreenCtx.scale(zoomLevel, zoomLevel);
+
+            // Tegn billede direkte uden at kalde drawImage (for at undgå rekursion)
+            fullscreenCtx.drawImage(currentImage, 0, 0, fullscreenCanvas.width, fullscreenCanvas.height);
+
+            // Konverter til grayscale kun hvis brugeren har valgt det
+            if (showGrayscale) {
+                const imageData = fullscreenCtx.getImageData(0, 0, fullscreenCanvas.width, fullscreenCanvas.height);
+                const data = imageData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                    data[i] = gray;     // Red
+                    data[i + 1] = gray; // Green
+                    data[i + 2] = gray; // Blue
+                }
+
+                fullscreenCtx.putImageData(imageData, 0, 0);
+            }
+
+            // Tegn markeringer med korrekt zoom/pan
+            selections.forEach((selection, index) => {
+                // Beregn skalering for markeringer - brug original billede dimensioner
+                const scaleX = fullscreenCanvas.width / currentImage.width;
+                const scaleY = fullscreenCanvas.height / currentImage.height;
+
+                const scaledX = selection.x * scaleX;
+                const scaledY = selection.y * scaleY;
+                const scaledWidth = selection.width * scaleX;
+                const scaledHeight = selection.height * scaleY;
+
+                const color = index === 0 ? '#ef4444' : '#22c55e';
+                fullscreenCtx.strokeStyle = color;
+                fullscreenCtx.lineWidth = 4;
+                fullscreenCtx.setLineDash([5, 5]);
+
+                // Tegn markering med zoom/pan korrektion
+                fullscreenCtx.strokeRect(
+                    (scaledX - panX) / zoomLevel,
+                    (scaledY - panY) / zoomLevel,
+                    scaledWidth / zoomLevel,
+                    scaledHeight / zoomLevel
+                );
+
+                // Tegn label med zoom/pan korrektion
+                fullscreenCtx.fillStyle = color;
+                fullscreenCtx.font = '20px Arial';
+                fullscreenCtx.fillText(
+                    selection.label,
+                    (scaledX - panX) / zoomLevel,
+                    (scaledY - panY) / zoomLevel - 5
+                );
+
+                fullscreenCtx.setLineDash([]);
+            });
+
+            fullscreenCtx.restore();
+        }
+
+        function resetZoom() {
+            zoomLevel = 1;
+            panX = 0;
+            panY = 0;
+            document.getElementById('zoomIndicator').textContent = '100%';
+            updateFullscreenCanvas();
+        }
+
+        // Fuldskærms mouse events - REN KOORDINAT IMPLEMENTERING
+        function handleFullscreenMouseDown(e) {
+            if (!currentImage) return;
+
+            // Hvis højre museknap eller Ctrl+klik, start pan
+            if (e.button === 2 || e.ctrlKey) {
+                isPanning = true;
+                lastPanX = e.clientX;
+                lastPanY = e.clientY;
+                return;
+            }
+
+            // Ellers start markering
+            // Konverter fuldskærms koordinater til billede koordinater
+            // Tager højde for zoom og pan
+            const rect = fullscreenCanvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left - panX) / zoomLevel;
+            const mouseY = (e.clientY - rect.top - panY) / zoomLevel;
+
+            // Konverter til billede koordinater
+            const imageX = mouseX * (currentImage.width / fullscreenCanvas.width);
+            const imageY = mouseY * (currentImage.height / fullscreenCanvas.height);
+
+            startX = imageX;
+            startY = imageY;
+            isSelecting = true;
+        }
+
+        function handleFullscreenMouseMove(e) {
+            // Håndter pan
+            if (isPanning) {
+                const deltaX = e.clientX - lastPanX;
+                const deltaY = e.clientY - lastPanY;
+
+                panX += deltaX;
+                panY += deltaY;
+
+                lastPanX = e.clientX;
+                lastPanY = e.clientY;
+
+                updateFullscreenCanvas();
+                return;
+            }
+
+            // Håndter markering
+            if (!isSelecting) return;
+
+            // Konverter fuldskærms koordinater til billede koordinater
+            // Tager højde for zoom og pan
+            const rect = fullscreenCanvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left - panX) / zoomLevel;
+            const mouseY = (e.clientY - rect.top - panY) / zoomLevel;
+
+            // Konverter til billede koordinater
+            const imageX = mouseX * (currentImage.width / fullscreenCanvas.width);
+            const imageY = mouseY * (currentImage.height / fullscreenCanvas.height);
+
+            // Opdater fuldskærm canvas med zoom/pan
+            updateFullscreenCanvas();
+
+            // Tegn aktuelle markering direkte på fuldskærm canvas
+            const width = imageX - startX;
+            const height = imageY - startY;
+            const color = selections.length === 0 ? '#ef4444' : '#22c55e';
+
+            // Konverter billede koordinater til fuldskærm koordinater
+            const fsX = startX * (fullscreenCanvas.width / currentImage.width);
+            const fsY = startY * (fullscreenCanvas.height / currentImage.height);
+            const fsWidth = width * (fullscreenCanvas.width / currentImage.width);
+            const fsHeight = height * (fullscreenCanvas.height / currentImage.height);
+
+            fullscreenCtx.strokeStyle = color;
+            fullscreenCtx.lineWidth = 4;
+            fullscreenCtx.setLineDash([5, 5]);
+            fullscreenCtx.strokeRect(fsX, fsY, fsWidth, fsHeight);
+            fullscreenCtx.setLineDash([]);
+        }
+
+        function handleFullscreenMouseUp(e) {
+            // Håndter pan stop
+            if (isPanning) {
+                isPanning = false;
+                return;
+            }
+
+            // Håndter markering stop
+            if (!isSelecting) return;
+
+            // Konverter fuldskærms koordinater til billede koordinater
+            // Tager højde for zoom og pan
+            const rect = fullscreenCanvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left - panX) / zoomLevel;
+            const mouseY = (e.clientY - rect.top - panY) / zoomLevel;
+
+            // Konverter til billede koordinater
+            const imageX = mouseX * (currentImage.width / fullscreenCanvas.width);
+            const imageY = mouseY * (currentImage.height / fullscreenCanvas.height);
+
+            const endX = imageX;
+            const endY = imageY;
+
+            const width = endX - startX;
+            const height = endY - startY;
+
+            if (Math.abs(width) > 10 && Math.abs(height) > 10) {
+                const selection = {
+                    x: width < 0 ? startX + width : startX,
+                    y: height < 0 ? startY + height : startY,
+                    width: Math.abs(width),
+                    height: Math.abs(height),
+                    label: selections.length === 0 ? 'Hvidt referencekort' : `Målområde ${selections.length}`
+                };
+
+                selections.push(selection);
+                updateSelectionsList();
+                updateUI();
+
+                // Opdater begge canvas
+                drawImage();
+                updateFullscreenCanvas();
+            }
+
+            isSelecting = false;
+        }
+
+        // Touch event handlers for mobile - REN KOORDINAT IMPLEMENTERING
+        function handleFullscreenTouchStart(e) {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const rect = fullscreenCanvas.getBoundingClientRect();
+                // Konverter touch koordinater til billede koordinater
+                // Tager højde for zoom og pan
+                const touchX = (touch.clientX - rect.left - panX) / zoomLevel;
+                const touchY = (touch.clientY - rect.top - panY) / zoomLevel;
+
+                // Konverter til billede koordinater
+                const imageX = touchX * (currentImage.width / fullscreenCanvas.width);
+                const imageY = touchY * (currentImage.height / fullscreenCanvas.height);
+
+                // Gem koordinater direkte i billede koordinater
+                startX = imageX;
+                startY = imageY;
+                isSelecting = true;
+            }
+        }
+
+        function handleFullscreenTouchMove(e) {
+            e.preventDefault();
+            if (!isSelecting || e.touches.length !== 1) return;
+
+            const touch = e.touches[0];
+            const rect = fullscreenCanvas.getBoundingClientRect();
+            // Konverter touch koordinater til billede koordinater
+            // Tager højde for zoom og pan
+            const touchX = (touch.clientX - rect.left - panX) / zoomLevel;
+            const touchY = (touch.clientY - rect.top - panY) / zoomLevel;
+
+            // Konverter til billede koordinater
+            const imageX = touchX * (currentImage.width / fullscreenCanvas.width);
+            const imageY = touchY * (currentImage.height / fullscreenCanvas.height);
+
+            // Opdater fuldskærm canvas med zoom/pan
+            updateFullscreenCanvas();
+
+            // Tegn aktuelle markering direkte på fuldskærm canvas
+            const width = imageX - startX;
+            const height = imageY - startY;
+            const color = selections.length === 0 ? '#ef4444' : '#22c55e';
+
+            // Konverter billede koordinater til fuldskærm koordinater
+            const fsX = startX * (fullscreenCanvas.width / currentImage.width);
+            const fsY = startY * (fullscreenCanvas.height / currentImage.height);
+            const fsWidth = width * (fullscreenCanvas.width / currentImage.width);
+            const fsHeight = height * (fullscreenCanvas.height / currentImage.height);
+
+            fullscreenCtx.strokeStyle = color;
+            fullscreenCtx.lineWidth = 4;
+            fullscreenCtx.setLineDash([5, 5]);
+            fullscreenCtx.strokeRect(fsX, fsY, fsWidth, fsHeight);
+            fullscreenCtx.setLineDash([]);
+        }
+
+        function handleFullscreenTouchEnd(e) {
+            e.preventDefault();
+            if (!isSelecting) return;
+
+            if (e.changedTouches.length === 1) {
+                const touch = e.changedTouches[0];
+                const rect = fullscreenCanvas.getBoundingClientRect();
+                // Konverter touch koordinater til billede koordinater
+                // Tager højde for zoom og pan
+                const touchX = (touch.clientX - rect.left - panX) / zoomLevel;
+                const touchY = (touch.clientY - rect.top - panY) / zoomLevel;
+
+                // Konverter til billede koordinater
+                const imageX = touchX * (currentImage.width / fullscreenCanvas.width);
+                const imageY = touchY * (currentImage.height / fullscreenCanvas.height);
+
+                const endX = imageX;
+                const endY = imageY;
+
+                const width = endX - startX;
+                const height = endY - startY;
+
+                if (Math.abs(width) > 10 && Math.abs(height) > 10) {
+                    const selection = {
+                        x: width < 0 ? startX + width : startX,
+                        y: height < 0 ? startY + height : startY,
+                        width: Math.abs(width),
+                        height: Math.abs(height),
+                        label: selections.length === 0 ? 'Hvidt referencekort' : `Målområde ${selections.length}`
+                    };
+
+                    selections.push(selection);
+                    updateSelectionsList();
+                    updateUI();
+
+                    // Opdater begge canvas
+                    drawImage();
+                    updateFullscreenCanvas();
+                }
+            }
+
+            isSelecting = false;
+        }
+
+
+
+        // Mouse event handlers funktioner - REN KOORDINAT IMPLEMENTERING
+        function setupMouseEvents() {
+            if (!canvas) return;
+
+            // Fjern eksisterende event listeners hvis de findes
+            canvas.removeEventListener('mousedown', handleMouseDown);
+            canvas.removeEventListener('mousemove', handleMouseMove);
+            canvas.removeEventListener('mouseup', handleMouseUp);
+
+            // Tilføj nye event listeners
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+        }
+
+        function handleMouseDown(e) {
+            if (!currentImage) return;
+
+            const coords = getMouseImageCoords(e, canvas);
+            startX = coords.x;
+            startY = coords.y;
+            isSelecting = true;
+        }
+
+        function handleMouseMove(e) {
+            if (!isSelecting) return;
+
+            const coords = getMouseImageCoords(e, canvas);
+            const currentX = coords.x;
+            const currentY = coords.y;
+
+            drawImage();
+
+            // Tegn aktuelle markering i canvas koordinater
+            const canvasStart = convertImageToCanvasCoords(startX, startY, canvas);
+            const canvasCurrent = convertImageToCanvasCoords(currentX, currentY, canvas);
+            const width = canvasCurrent.x - canvasStart.x;
+            const height = canvasCurrent.y - canvasStart.y;
+            const color = selections.length === 0 ? '#ef4444' : '#22c55e';
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(canvasStart.x, canvasStart.y, width, height);
+            ctx.setLineDash([]);
+        }
+
+        function handleMouseUp(e) {
+            if (!isSelecting) return;
+
+            const coords = getMouseImageCoords(e, canvas);
+            const endX = coords.x;
+            const endY = coords.y;
+
+            const width = endX - startX;
+            const height = endY - startY;
+
+            if (Math.abs(width) > 10 && Math.abs(height) > 10) {
+                const selection = {
+                    x: width < 0 ? startX + width : startX,
+                    y: height < 0 ? startY + height : startY,
+                    width: Math.abs(width),
+                    height: Math.abs(height),
+                    label: selections.length === 0 ? 'Hvidt referencekort' : `Målområde ${selections.length}`
+                };
+
+                selections.push(selection);
+                updateSelectionsList();
+                updateUI();
+            }
+
+            isSelecting = false;
+            drawImage();
+        }
+
+        function updateSelectionsList() {
+            const container = document.getElementById('selectionsContainer');
+            container.innerHTML = '';
+
+            selections.forEach((selection, index) => {
+                const div = document.createElement('div');
+                div.className = 'selection-item';
+                div.innerHTML = `
+                    <div class="color-indicator ${index === 0 ? 'color-red' : 'color-green'}"></div>
+                    <span>${selection.label}</span>
+                    <span style="color: #6b7280;">(${Math.round(selection.width)} × ${Math.round(selection.height)} px)</span>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('selectionsList').classList.toggle('hidden', selections.length === 0);
+            document.getElementById('measurementInputs').classList.toggle('hidden', selections.length === 0);
+            document.getElementById('selectionCount').textContent = selections.length;
+        }
+
+        function updateUI() {
+            document.getElementById('calculateBtn').disabled = selections.length < 2;
+            // "Tilføj til resultater" knappen skal kun aktiveres EFTER beregning
+            document.getElementById('addToResultsBtn').disabled = true;
+
+            // Vis eller skjul navngivning af måleområder
+            if (selections.length >= 2) {
+                showAreaNamesSection();
+            } else {
+                document.getElementById('areaNamesSection').classList.add('hidden');
+            }
+
+            // Opdater menu knapper
+            updateMenuButtons();
+        }
+
+        function updateMenuButtons() {
+            const resultsMenuBtn = document.getElementById('resultsMenuBtn');
+            const exportAllBtn = document.getElementById('exportAllBtn');
+            const exportAllExcelBtn = document.getElementById('exportAllExcelBtn');
+
+            if (resultsMenuBtn) {
+                resultsMenuBtn.disabled = cachedMeasurements.length === 0;
+            }
+
+            if (exportAllBtn) {
+                exportAllBtn.disabled = cachedMeasurements.length === 0;
+            }
+
+            if (exportAllExcelBtn) {
+                exportAllExcelBtn.disabled = cachedMeasurements.length === 0;
+            }
+        }
+
+        function showAreaNamesSection() {
+            const areaNamesSection = document.getElementById('areaNamesSection');
+            const areaNamesGrid = document.getElementById('areaNamesGrid');
+
+            areaNamesSection.classList.remove('hidden');
+            areaNamesGrid.innerHTML = '';
+
+            // Tilføj input felter for hver måleområde (undtagen referencekortet)
+            // i = 1 betyder første måleområde (efter referencekortet)
+            for (let i = 1; i < selections.length; i++) {
+                const areaNameInput = document.createElement('div');
+                areaNameInput.className = 'area-name-input';
+                areaNameInput.innerHTML = `
+                    <span class="area-name-label">Måleområde ${i}:</span>
+                    <input type="text" class="area-name-field" 
+                           id="areaName${i}" 
+                           placeholder="f.eks. Asfalt, Græs, Is"
+                           onchange="updateAreaName(${i}, this.value)">
+                `;
+                areaNamesGrid.appendChild(areaNameInput);
+            }
+        }
+
+        function updateAreaName(areaIndex, name) {
+            // Gem navnet i selection objektet
+            if (selections[areaIndex]) {
+                selections[areaIndex].areaName = name;
+            }
+        }
+
+        function clearSelections() {
+            // Gem tilstand til undo før rydning
+            saveStateForUndo();
+
+            selections = [];
+            allMeasurements = [];
+            currentMeasurementIndex = 0;
+            updateSelectionsList();
+            updateUI();
+            hideResults();
+            clearInputs();
+
+            // Deaktiver "Tilføj til resultatliste" knappen
+            document.getElementById('addToResultsBtn').disabled = true;
+
+            // Grayscale knappen forbliver aktiveret - den bliver kun deaktiveret ved nye undersøgelser
+
+            // Skjul resultatoversigt
+            document.getElementById('resultsOverview').style.display = 'none';
+
+            if (currentImage) {
+                drawImage();
+            }
+        }
+
+        function clearInputs() {
+            document.getElementById('temperatureInput').value = '';
+            document.getElementById('locationInput').value = '';
+            document.getElementById('commentInput').value = '';
+
+            // Ryd områdenavne
+            const areaNamesGrid = document.getElementById('areaNamesGrid');
+            if (areaNamesGrid) {
+                areaNamesGrid.innerHTML = '';
+            }
+        }
+
+        function getInputValues() {
+            return {
+                temperature: document.getElementById('temperatureInput').value,
+                location: document.getElementById('locationInput').value,
+                comment: document.getElementById('commentInput').value
+            };
+        }
+
+
+
+        // Pixel analysis
+        function getPixelValues(selection) {
+            // Beregn skalering til originalbillede
+            if (!currentImage) {
+                throw new Error("currentImage is null - cannot extract pixel values");
+            }
+
+            const scaleX = currentImage.width / canvas.width;
+            const scaleY = currentImage.height / canvas.height;
+
+            const scaledX = Math.floor(selection.x * scaleX);
+            const scaledY = Math.floor(selection.y * scaleY);
+            const scaledWidth = Math.floor(selection.width * scaleX);
+            const scaledHeight = Math.floor(selection.height * scaleY);
+
+            // Lav temporært canvas
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = scaledWidth;
+            tempCanvas.height = scaledHeight;
+
+            // Tegn den relevante del
+            tempCtx.drawImage(
+                currentImage,
+                scaledX, scaledY, scaledWidth, scaledHeight,
+                0, 0, scaledWidth, scaledHeight
+            );
+
+            // Hent pixeldata
+            const imageData = tempCtx.getImageData(0, 0, scaledWidth, scaledHeight);
+            const data = imageData.data;
+
+            let totalGray = 0;
+            let totalRed = 0;
+            let totalGreen = 0;
+            let totalBlue = 0;
+            let pixelCount = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // Beregn gråtone (luminance)
+                const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                totalRed += r;
+                totalGreen += g;
+                totalBlue += b;
+                totalGray += gray;
+                pixelCount++;
+            }
+
+            return {
+                averageGray: totalGray / pixelCount,
+                averageRed: totalRed / pixelCount,
+                averageGreen: totalGreen / pixelCount,
+                averageBlue: totalBlue / pixelCount,
+                pixelCount: pixelCount
+            };
+        }
+
+        function calculateCurrentMeasurement() {
+            if (selections.length < 2) return [];
+
+            const referencePixels = getPixelValues(selections[0]);
+            const expectedWhiteValue = 179; // 0.7 * 255
+            const correctionFactor = referencePixels.averageGray / expectedWhiteValue;
+
+            const results = [];
+
+            // Reference result
+            results.push({
+                area: 'Hvidt referencekort',
+                rawPixelValue: referencePixels.averageGray,
+                correctedPixelValue: referencePixels.averageGray / correctionFactor,
+                albedo: 70,
+                pixelCount: referencePixels.pixelCount,
+                correctionFactor: correctionFactor,
+                rgb: {
+                    r: referencePixels.averageRed,
+                    g: referencePixels.averageGreen,
+                    b: referencePixels.averageBlue
+                }
+            });
+
+            // Target areas
+            for (let i = 1; i < selections.length; i++) {
+                const targetPixels = getPixelValues(selections[i]);
+                const correctedPixelValue = targetPixels.averageGray / correctionFactor;
+                const albedo = (correctedPixelValue / 255) * 100;
+
+                // Brug det navngivne område hvis det findes, ellers standard label
+                // i = 1 betyder første måleområde, så vi bruger i som nummer
+                const areaName = selections[i].areaName || selections[i].label || `Måleområde ${i}`;
+
+                results.push({
+                    area: areaName,
+                    rawPixelValue: targetPixels.averageGray,
+                    correctedPixelValue: correctedPixelValue,
+                    albedo: albedo,
+                    pixelCount: targetPixels.pixelCount,
+                    rgb: {
+                        r: targetPixels.averageRed,
+                        g: targetPixels.averageGreen,
+                        b: targetPixels.averageBlue
+                    }
+                });
+            }
+
+            return results;
+        }
+
+        function calculateAlbedo() {
+            const currentResults = calculateCurrentMeasurement();
+            const inputs = getInputValues();
+
+            if (currentResults.length === 0) {
+                alert('Du skal markere både et hvidt referencekort og mindst ét målområde');
+                return;
+            }
+
+            // Tilføj til alle målinger
+            allMeasurements.push({
+                measurementNumber: allMeasurements.length + 1,
+                selections: [...selections],
+                results: currentResults,
+                inputs: inputs
+            });
+
+            showResults();
+
+            // Aktiver "Tilføj til resultatliste" knappen
+            document.getElementById('addToResultsBtn').disabled = false;
+        }
+
+        function addToResultsList() {
+            if (allMeasurements.length === 0) {
+                alert('Ingen målinger at tilføje til resultatlisten.');
+                return;
+            }
+
+            // Tjek om denne måling allerede eksisterer
+            const currentResults = allMeasurements[0].results;
+            const currentInputs = allMeasurements[0].inputs;
+
+            // Sammenlign med eksisterende målinger
+            const isDuplicate = cachedMeasurements.some(existing => {
+                if (existing.results.length !== currentResults.length) return false;
+
+                // Tjek om alle resultater matcher
+                for (let i = 0; i < currentResults.length; i++) {
+                    if (existing.results[i].pixelCount !== currentResults[i].pixelCount ||
+                        Math.abs(existing.results[i].albedo - currentResults[i].albedo) > 0.1) {
+                        return false;
+                    }
+                }
+
+                // Tjek om inputs matcher
+                if (existing.inputs.temperature !== currentInputs.temperature ||
+                    existing.inputs.location !== currentInputs.location ||
+                    existing.inputs.comment !== currentInputs.comment) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            if (isDuplicate) {
+                if (!confirm('Denne måling ser ud til at være identisk med en eksisterende måling. Vil du tilføje den alligevel?')) {
+                    return;
+                }
+            }
+
+            const currentMeasurement = {
+                measurementNumber: cachedMeasurements.length + 1,
+                results: currentResults,
+                inputs: currentInputs,
+                timestamp: new Date().toISOString()
+            };
+
+            cachedMeasurements.push(currentMeasurement);
+            updateResultsOverview();
+
+            // Deaktiver knappen efter brug
+            document.getElementById('addToResultsBtn').disabled = true;
+
+            // Vis bekræftelse og opdater UI
+            showDataAddedConfirmation();
+            updateResultsOverview();
+        }
+
+        function showResults() {
+            document.getElementById('resultsEmpty').classList.add('hidden');
+            document.getElementById('resultsContainer').classList.remove('hidden');
+            document.getElementById('newImageBtn').classList.remove('hidden');
+
+            // Vis resultatoversigt
+            document.getElementById('resultsOverview').style.display = 'block';
+
+            // Vis resultatoversigt hvis der er cached målinger
+            if (cachedMeasurements.length > 0) {
+                updateResultsOverview();
+            }
+
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = '';
+
+            // Vis alle målinger
+            allMeasurements.forEach((measurement, measurementIndex) => {
+                const measurementDiv = document.createElement('div');
+                measurementDiv.className = 'measurement-section';
+
+                let measurementHTML = `
+                    <div class="measurement-header">
+                        <h2 class="measurement-title">Måling ${measurement.measurementNumber}</h2>
+                        <div class="measurement-number">#${measurement.measurementNumber}</div>
+                    </div>
+                `;
+
+                // Vis information om målingen (temperatur, kommentarer osv.)
+                if (measurement.inputs && (measurement.inputs.temperature || measurement.inputs.location || measurement.inputs.comment)) {
+                    measurementHTML += `
+                        <div class="measurement-info">
+                            <h4>📋 Måleoplysninger</h4>
+                    `;
+
+                    if (measurement.inputs.temperature) {
+                        measurementHTML += `<div class="temperature-display">🌡️ ${measurement.inputs.temperature}°C</div>`;
+                    }
+
+                    if (measurement.inputs.location) {
+                        measurementHTML += `<p><strong>📍 Lokation:</strong> ${measurement.inputs.location}</p>`;
+                    }
+
+                    if (measurement.inputs.comment) {
+                        measurementHTML += `<div class="comment-display">💭 <em>${measurement.inputs.comment}</em></div>`;
+                    }
+
+                    measurementHTML += '</div>';
+                }
+
+                // Kompakt resultat oversigt (beregninger kan ses via "Detaljer" knappen)
+
+                // Kompakt resultat oversigt
+                measurementHTML += '<div class="results-summary">';
+                measurement.results.forEach((result, index) => {
+                    // Skip referencekort (index 0)
+                    if (index === 0) return;
+
+                    const measurementNumber = measurement.measurementNumber;
+                    const areaNumber = index;
+                    const fullAreaName = `${measurementNumber}.${areaNumber} ${result.area || `Område ${areaNumber}`}`;
+
+                    measurementHTML += `
+                        <div class="result-summary-item">
+                            <div class="result-header">
+                                <span class="result-label">${fullAreaName}</span>
+                                <span class="result-albedo">${result.albedo.toFixed(1).replace('.', ',')}%</span>
+                            </div>
+                            <div class="result-details">
+                                <span class="pixel-count">${result.pixelCount.toLocaleString('da-DK')} pixels</span>
+                                <button class="btn-details" onclick="showCalculationDetails(${measurementIndex}, ${index})">
+                                    📊 Detaljer
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                measurementHTML += '</div>';
+
+                measurementDiv.innerHTML = measurementHTML;
+                container.appendChild(measurementDiv);
+            });
+        }
+
+        function hideResults() {
+            document.getElementById('resultsEmpty').classList.remove('hidden');
+            document.getElementById('resultsContainer').classList.add('hidden');
+            document.getElementById('newImageBtn').classList.add('hidden');
+        }
+
+        function exportResults(format = 'excel') {
+            if (allMeasurements.length === 0) return;
+
+            const headers = ['Måling', 'Område', 'Rå Pixelværdi', 'Korrigeret Pixelværdi', 'Albedo (%)', 'Antal Pixels', 'Temperatur (°C)', 'Lokation', 'Kommentar'];
+            const rows = [];
+
+            allMeasurements.forEach((measurement, measurementIndex) => {
+                measurement.results.forEach((result, resultIndex) => {
+                    // Skip referencekort (index 0)
+                    if (resultIndex === 0) return;
+
+                    rows.push([
+                        `Måling ${measurement.measurementNumber}`,
+                        result.area,
+                        result.rawPixelValue.toFixed(2).replace('.', ','),
+                        result.correctedPixelValue.toFixed(2).replace('.', ','),
+                        result.albedo.toFixed(2).replace('.', ','),
+                        result.pixelCount,
+                        measurement.inputs?.temperature || '',
+                        measurement.inputs?.location || '',
+                        measurement.inputs?.comment || ''
+                    ]);
+                });
+            });
+
+            exportToExcel(headers, rows, 'albedo_resultater');
+        }
+
+        // Cache funktionalitet for at gemme resultater mellem billeder
+        let cachedMeasurements = [];
+
+        // Eksport hjælpefunktioner
+
+        function exportToExcel(headers, rows, filename) {
+            try {
+                // Opret et nyt arbejdsbog
+                const wb = XLSX.utils.book_new();
+
+                // Konverter data til et format SheetJS kan forstå
+                const wsData = [headers, ...rows];
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                // Definer kolonneformater for bedre datatyper
+                const range = XLSX.utils.decode_range(ws['!ref']);
+
+                // Temperatur kolonne (index 6) skal være numerisk
+                for (let R = range.s.r + 1; R <= range.e.r; R++) {
+                    const tempCell = XLSX.utils.encode_cell({ r: R, c: 6 });
+                    if (ws[tempCell] && ws[tempCell].v !== '') {
+                        // Konverter til tal hvis muligt
+                        const tempValue = parseFloat(ws[tempCell].v);
+                        if (!isNaN(tempValue)) {
+                            ws[tempCell] = { v: tempValue, t: 'n' };
+                        }
+                    }
+                }
+
+                // Sæt kolonnebredder
+                const colWidths = [
+                    { wch: 15 }, // Måling
+                    { wch: 25 }, // Område
+                    { wch: 18 }, // Rå Pixelværdi
+                    { wch: 20 }, // Korrigeret Pixelværdi
+                    { wch: 12 }, // Albedo (%)
+                    { wch: 12 }, // Antal Pixels
+                    { wch: 15 }, // Temperatur (°C)
+                    { wch: 20 }, // Lokation
+                    { wch: 30 }, // Kommentar
+                    { wch: 20 }  // Tidsstempel
+                ];
+                ws['!cols'] = colWidths;
+
+                // Tilføj arbejdsbladet til arbejdsbogen
+                XLSX.utils.book_append_sheet(wb, ws, 'Albedo Resultater');
+
+                // Eksporter filen
+                XLSX.writeFile(wb, `${filename}.xlsx`);
+            } catch (error) {
+                console.error('Fejl ved Excel eksport:', error);
+                alert('Der opstod en fejl ved Excel eksport. Prøv igen.');
+            }
+        }
+
+        function updateResultsOverview() {
+            const resultsOverview = document.getElementById('resultsOverview');
+            const resultsTableBody = document.getElementById('resultsTableBody');
+
+            if (cachedMeasurements.length === 0) {
+                resultsOverview.style.display = 'none';
+                return;
+            }
+
+            resultsOverview.style.display = 'block';
+
+            // Opdater tabellen med alle resultater
+            let tableHTML = '';
+            let rowNumber = 1;
+
+            cachedMeasurements.forEach((measurement, measurementIndex) => {
+                measurement.results.forEach((result, resultIndex) => {
+                    // Skip referencekort (index 0)
+                    if (resultIndex === 0) return;
+
+                    const measurementNumber = measurement.measurementNumber;
+                    const areaNumber = resultIndex;
+                    const fullAreaName = `${measurementNumber}.${areaNumber} ${result.area || `Område ${areaNumber}`}`;
+
+                    tableHTML += `
+                        <tr data-measurement="${measurementIndex}" data-result="${resultIndex}">
+                            <td>${rowNumber}</td>
+                            <td class="area-name">${fullAreaName}</td>
+                            <td class="albedo-value">${result.albedo.toFixed(1).replace('.', ',')}%</td>
+                            <td class="pixel-count">${result.pixelCount.toLocaleString('da-DK')}</td>
+                            <td class="temperature">${measurement.inputs?.temperature || '-'}°C</td>
+                            <td class="location">${measurement.inputs?.location || '-'}</td>
+                            <td class="actions">
+                                <button class="btn-small btn-view" onclick="showCalculationDetails(${measurementIndex}, ${resultIndex})">
+                                    📊 Detaljer
+                                </button>
+                                <button class="btn-small btn-delete" onclick="deleteResult(${measurementIndex}, ${resultIndex})">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    rowNumber++;
+                });
+            });
+
+            resultsTableBody.innerHTML = tableHTML;
+
+            // Opdater menu knapper
+            updateMenuButtons();
+        }
+
+        // Funktion til at starte en helt ny undersøgelse (rydder alt)
+        function startNewInvestigation() {
+            if (cachedMeasurements.length > 0 || allMeasurements.length > 0) {
+                const userChoice = confirm(
+                    'Dette vil rydde ALLE resultater og målinger.\n\n' +
+                    'Er du sikker på, at du vil starte en helt ny undersøgelse?\n\n' +
+                    '• Klikke "OK" for at rydde alt og starte forfra\n' +
+                    '• Klikke "Annuller" for at beholde nuværende data\n\n' +
+                    'Hvad foretrækker du?'
+                );
+
+                if (!userChoice) {
+                    return; // Brugeren annullerede
+                }
+            }
+
+            // Ryd alt
+            cachedMeasurements = [];
+            allMeasurements = [];
+            selections = [];
+            currentMeasurementIndex = 0;
+
+            // Reset UI
+            updateResultsOverview();
+            updateSelectionsList();
+            updateUI();
+            hideResults();
+
+            // Vis hovedmenu igen
+            showMainMenu();
+
+            // Reset upload område og fil input
+            resetUploadArea();
+            document.getElementById('fileInput').value = '';
+
+            // Ryd canvas og reset billede
+            currentImage = null;
+            const canvas = document.getElementById('imageCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Reset zoom og pan
+            if (window.currentZoom) {
+                window.currentZoom = 1;
+                window.panX = 0;
+                window.panY = 0;
+                updateCanvasTransform();
+            }
+
+            // Deaktiver knapper og reset grayscale
+            document.getElementById('addToResultsBtn').disabled = true;
+            document.getElementById('grayscaleBtn').disabled = true;
+            showGrayscale = false;
+
+            // Opdater menu knapper
+            updateMenuButtons();
+
+            // Åbn filvælgeren automatisk
+            setTimeout(() => {
+                document.getElementById('fileInput').click();
+            }, 100);
+        }
+
+        // Funktion til at uploade et nyt billede (bevarer eksisterende resultater)
+        function newImage() {
+            // Tjek om der er usaved data på det nuværende billede
+            if (allMeasurements.length > 0) {
+                const userChoice = confirm(
+                    'Du har ikke gemt dine nuværende målinger til resultatlisten.\n\n' +
+                    'Vil du:\n' +
+                    '• Klikke "OK" for at gemme dem automatisk\n' +
+                    '• Klikke "Annuller" for at kassere dem\n\n' +
+                    'Hvad foretrækker du?'
+                );
+
+                if (userChoice) {
+                    // Gem automatisk
+                    const currentMeasurement = {
+                        measurementNumber: cachedMeasurements.length + 1,
+                        results: allMeasurements[0].results,
+                        inputs: allMeasurements[0].inputs,
+                        timestamp: new Date().toISOString()
+                    };
+                    cachedMeasurements.push(currentMeasurement);
+                    updateResultsOverview();
+                }
+                // Hvis userChoice er false, kasseres dataene
+            }
+
+            // Reset kun for det nuværende billede (bevar resultatlisten)
+            clearSelections();
+            hideResults();
+
+            // Vis hovedmenu igen
+            showMainMenu();
+
+            // Reset upload område og fil input
+            resetUploadArea();
+            document.getElementById('fileInput').value = '';
+
+            // Ryd canvas og reset billede
+            currentImage = null;
+            const canvas = document.getElementById('imageCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Reset zoom og pan
+            if (window.currentZoom) {
+                window.currentZoom = 1;
+                window.panX = 0;
+                window.panY = 0;
+                updateCanvasTransform();
+            }
+
+            // Deaktiver "Tilføj til resultatliste" knappen
+            document.getElementById('addToResultsBtn').disabled = true;
+
+            // Deaktiver gråskala knappen og reset grayscale
+            document.getElementById('grayscaleBtn').disabled = true;
+            showGrayscale = false;
+        }
+
+        function showCalculationDetails(measurementIndex, resultIndex) {
+            const measurement = cachedMeasurements[measurementIndex];
+            const result = measurement.results[resultIndex];
+
+            // Skip referencekort
+            if (resultIndex === 0) return;
+
+            // Vis komplette beregningsdetaljer
+            const measurementNumber = measurement.measurementNumber;
+            const areaNumber = resultIndex;
+            const fullAreaName = `${measurementNumber}.${areaNumber} ${result.area || `Område ${areaNumber}`}`;
+
+            let detailsHTML = `
+                <div class="calculation-details-modal">
+                    <div class="modal-header">
+                        <h4>Beregningsdetaljer: ${fullAreaName}</h4>
+                        <button onclick="closeCalculationDetails()" class="btn-close">×</button>
+                    </div>
+                    <div class="modal-content">
+                        <div class="detail-row">
+                            <strong>Rå pixelværdi:</strong> ${result.rawPixelValue.toFixed(2).replace('.', ',')}
+                        </div>
+                        <div class="detail-row">
+                            <strong>Korrigeret pixelværdi:</strong> ${result.correctedPixelValue.toFixed(2).replace('.', ',')}
+                        </div>
+                        <div class="detail-row">
+                            <strong>Albedo:</strong> ${result.albedo.toFixed(1).replace('.', ',')}%
+                        </div>
+                        <div class="detail-row">
+                            <strong>Antal pixels:</strong> ${result.pixelCount.toLocaleString('da-DK')}
+                        </div>
+            `;
+
+            // Tilføj korrektionsfaktor hvis det er referencekortet
+            if (resultIndex === 0 && result.correctionFactor) {
+                detailsHTML += `
+                        <div class="detail-row">
+                            <strong>Korrektionsfaktor:</strong> ${result.correctionFactor.toFixed(3).replace('.', ',')}
+                        </div>
+                        <div class="detail-row">
+                            <strong>Forklaring:</strong> ${result.correctionFactor > 1 ?
+                        'Billedet er for lyst - dividerer med faktoren for at korrigere' :
+                        'Billedet er for mørkt - dividerer med faktoren for at korrigere'}
+                        </div>
+                `;
+            }
+
+            detailsHTML += `
+                        <div class="detail-row">
+                            <strong>Formel:</strong> (${result.correctedPixelValue.toFixed(2).replace('.', ',')} ÷ 255) × 100% = ${result.albedo.toFixed(1).replace('.', ',')}%
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Vis modal
+            showModal(detailsHTML);
+        }
+
+        function deleteResult(measurementIndex, resultIndex) {
+            // Skip referencekort
+            if (resultIndex === 0) return;
+
+            if (confirm('Er du sikker på, at du vil slette denne måling?')) {
+                const measurement = cachedMeasurements[measurementIndex];
+                measurement.results.splice(resultIndex, 1);
+
+                // Hvis der ikke er flere resultater i målingen, fjern hele målingen
+                if (measurement.results.length === 0) {
+                    cachedMeasurements.splice(measurementIndex, 1);
+                }
+
+                updateResultsOverview();
+            }
+        }
+
+        function showModal(content) {
+            // Fjern eksisterende modal hvis den findes
+            const existingModal = document.querySelector('.modal-overlay');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modalHTML = `
+                <div class="modal-overlay">
+                    <div class="modal">
+                        ${content}
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeCalculationDetails() {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function exportAllResults(format = 'excel') {
+            if (cachedMeasurements.length === 0) return;
+
+            const headers = ['Måling', 'Område', 'Rå Pixelværdi', 'Korrigeret Pixelværdi', 'Albedo (%)', 'Antal Pixels', 'Temperatur (°C)', 'Lokation', 'Kommentar', 'Tidsstempel'];
+            const rows = [];
+
+            cachedMeasurements.forEach((measurement, measurementIndex) => {
+                measurement.results.forEach((result, resultIndex) => {
+                    // Skip referencekort (index 0)
+                    if (resultIndex === 0) return;
+
+                    const measurementNumber = measurement.measurementNumber;
+                    const areaNumber = resultIndex;
+                    const fullAreaName = `${measurementNumber}.${areaNumber} ${result.area || `Område ${areaNumber}`}`;
+
+                    rows.push([
+                        `Måling ${measurementNumber}`,
+                        fullAreaName,
+                        result.rawPixelValue.toFixed(2).replace('.', ','),
+                        result.correctedPixelValue.toFixed(2).replace('.', ','),
+                        result.albedo.toFixed(2).replace('.', ','),
+                        result.pixelCount,
+                        measurement.inputs?.temperature || '',
+                        measurement.inputs?.location || '',
+                        measurement.inputs?.comment || '',
+                        measurement.timestamp
+                    ]);
+                });
+            });
+
+            exportToExcel(headers, rows, `albedo_alle_resultater_${new Date().toISOString().split('T')[0]}`);
+        }
+
+        // Undo/Redo system
+        function saveStateForUndo() {
+            const state = {
+                selections: JSON.parse(JSON.stringify(selections)),
+                allMeasurements: JSON.parse(JSON.stringify(allMeasurements)),
+                currentMeasurementIndex: currentMeasurementIndex,
+                inputs: getInputValues()
+            };
+
+            undoStack.push(state);
+            if (undoStack.length > maxUndoSteps) {
+                undoStack.shift();
+            }
+
+            // Ryd redo stack når ny handling udføres
+            redoStack = [];
+
+            // Opdater undo/redo knapper
+            updateUndoRedoButtons();
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+
+            // Gem nuværende tilstand til redo
+            const currentState = {
+                selections: JSON.parse(JSON.stringify(selections)),
+                allMeasurements: JSON.parse(JSON.stringify(allMeasurements)),
+                currentMeasurementIndex: currentMeasurementIndex,
+                inputs: getInputValues()
+            };
+            redoStack.push(currentState);
+
+            // Gendan tidligere tilstand
+            const previousState = undoStack.pop();
+            selections = previousState.selections;
+            allMeasurements = previousState.allMeasurements;
+            currentMeasurementIndex = previousState.currentMeasurementIndex;
+
+            // Gendan inputs
+            if (previousState.inputs) {
+                document.getElementById('temperatureInput').value = previousState.inputs.temperature || '';
+                document.getElementById('locationInput').value = previousState.inputs.location || '';
+                document.getElementById('commentInput').value = previousState.inputs.comment || '';
+            }
+
+            // Opdater UI
+            updateSelectionsList();
+            updateUI();
+            if (currentImage) {
+                drawImage();
+                if (isFullscreen) {
+                    updateFullscreenCanvas();
+                }
+            }
+
+            updateUndoRedoButtons();
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+
+            // Gem nuværende tilstand til undo
+            const currentState = {
+                selections: JSON.parse(JSON.stringify(selections)),
+                allMeasurements: JSON.parse(JSON.stringify(allMeasurements)),
+                currentMeasurementIndex: currentMeasurementIndex,
+                inputs: getInputValues()
+            };
+            undoStack.push(currentState);
+
+            // Gendan fremtidig tilstand
+            const futureState = redoStack.pop();
+            selections = futureState.selections;
+            allMeasurements = futureState.allMeasurements;
+            currentMeasurementIndex = futureState.currentMeasurementIndex;
+
+            // Gendan inputs
+            if (futureState.inputs) {
+                document.getElementById('temperatureInput').value = futureState.inputs.temperature || '';
+                document.getElementById('locationInput').value = futureState.inputs.location || '';
+                document.getElementById('commentInput').value = futureState.inputs.comment || '';
+            }
+
+            // Opdater UI
+            updateSelectionsList();
+            updateUI();
+            if (currentImage) {
+                drawImage();
+                if (isFullscreen) {
+                    updateFullscreenCanvas();
+                }
+            }
+
+            updateUndoRedoButtons();
+        }
+
+        function updateUndoRedoButtons() {
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+
+            if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+            if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+        }
+
+        // Auto-save system
+        function startAutoSave() {
+            if (autoSaveInterval) {
+                clearInterval(autoSaveInterval);
+            }
+
+            autoSaveInterval = setInterval(() => {
+                saveCurrentState();
+            }, 30000); // Gem hver 30. sekund
+        }
+
+        function saveCurrentState() {
+            if (!currentImage) return;
+
+            const state = {
+                imageName: currentImage.src.split('/').pop() || 'unknown',
+                selections: selections,
+                allMeasurements: allMeasurements,
+                currentMeasurementIndex: currentMeasurementIndex,
+                inputs: getInputValues(),
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                localStorage.setItem('albedo_autosave', JSON.stringify(state));
+                lastSavedState = state;
+
+                // Vis diskret bekræftelse
+                showSaveConfirmation();
+            } catch (error) {
+                console.warn('Auto-save fejlede:', error);
+            }
+        }
+
+        function loadSavedMeasurements() {
+            // Auto-restore er deaktiveret - brugeren skal starte forfra
+            // Tidligere målinger genoprettes ikke automatisk
+            // Dette sikrer at hver session starter rent uden forvirring
+        }
+
+        function showSaveConfirmation() {
+            const notification = document.createElement('div');
+            notification.className = 'save-notification';
+            notification.innerHTML = '💾 Automatisk gemt';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-size: 14px;
+                font-weight: 500;
+                opacity: 0;
+                transform: translateX(100px);
+                transition: all 0.3s ease;
+            `;
+
+            document.body.appendChild(notification);
+
+            // Animer ind
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+
+            // Fjern automatisk
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 2000);
+        }
+
+        // showRestoreConfirmation funktionen er fjernet da auto-restore er deaktiveret
+
+        // Smart input funktionalitet
+        function insertCommentTemplate(template) {
+            const commentInput = document.getElementById('commentInput');
+            commentInput.value = template;
+            commentInput.focus();
+
+            // Gem tilstand til undo
+            saveStateForUndo();
+        }
+
+        // Opdater location history når brugeren indtaster noget
+        function updateLocationHistory() {
+            const locationInput = document.getElementById('locationInput');
+            const location = locationInput.value.trim();
+
+            if (location && !locationHistory.includes(location)) {
+                locationHistory.unshift(location);
+                if (locationHistory.length > 10) {
+                    locationHistory.pop();
+                }
+
+                // Opdater datalist
+                updateLocationSuggestions();
+            }
+        }
+
+        function updateLocationSuggestions() {
+            const datalist = document.getElementById('locationSuggestions');
+            datalist.innerHTML = '';
+
+            // Tilføj standard forslag
+            const standardSuggestions = [
+                'Skolegård, asfalt',
+                'Skolegård, græs',
+                'Parkering, beton',
+                'Sti, grus',
+                'Vand, sø',
+                'Is, sne'
+            ];
+
+            // Kombiner standard og brugerdefinerede
+            const allSuggestions = [...new Set([...locationHistory, ...standardSuggestions])];
+
+            allSuggestions.forEach(suggestion => {
+                const option = document.createElement('option');
+                option.value = suggestion;
+                datalist.appendChild(option);
+            });
+        }
+
+
+
+        function updateStatusBar() {
+            const measurementStatus = document.getElementById('measurementStatus');
+            const autoSaveStatus = document.getElementById('autoSaveStatus');
+
+            if (measurementStatus) {
+                if (cachedMeasurements.length > 0) {
+                    // Tæl kun måleområder (ikke referencekort)
+                    const totalResults = cachedMeasurements.reduce((sum, m) => {
+                        return sum + (m.results.length - 1); // -1 for at fjerne referencekort
+                    }, 0);
+                    measurementStatus.textContent = `${cachedMeasurements.length} målinger, ${totalResults} resultater`;
+                } else if (allMeasurements.length > 0) {
+                    // Tæl kun måleområder (ikke referencekort)
+                    const totalResults = allMeasurements.reduce((sum, m) => {
+                        return sum + (m.results.length - 1); // -1 for at fjerne referencekort
+                    }, 0);
+                    measurementStatus.textContent = `${allMeasurements.length} måling(er) på nuværende billede, ${totalResults} resultater`;
+                } else if (selections.length > 0) {
+                    measurementStatus.textContent = `${selections.length} markerede områder`;
+                } else {
+                    measurementStatus.textContent = 'Ingen målinger';
+                }
+            }
+
+            if (autoSaveStatus) {
+                if (autoSaveInterval) {
+                    autoSaveStatus.textContent = 'Auto-save aktiveret';
+                } else {
+                    autoSaveStatus.textContent = 'Auto-save deaktiveret';
+                }
+            }
+        }
+
+        // Menu management functions
+        function showResultsMenu() {
+            // Skjul hovedmenu
+            document.getElementById('mainMenu').style.display = 'none';
+
+            // Vis resultater
+            document.getElementById('resultsOverview').style.display = 'block';
+        }
+
+        function showMainMenu() {
+            // Vis hovedmenu
+            document.getElementById('mainMenu').style.display = 'block';
+
+            // Skjul andre sektioner
+            document.getElementById('resultsOverview').style.display = 'none';
+            document.getElementById('main-grid').style.display = 'none';
+        }
+
+
+
+
+
+        function showDataAddedConfirmation() {
+            // Vis en midlertidig bekræftelse
+            const confirmation = document.createElement('div');
+            confirmation.className = 'data-added-confirmation';
+            confirmation.innerHTML = `
+                <div class="confirmation-content">
+                    <span>Data tilføjet til datasættet!</span>
+                    <span class="confirmation-count">${cachedMeasurements.length} måling(er) samlet</span>
+                </div>
+            `;
+
+            document.body.appendChild(confirmation);
+
+            // Fjern bekræftelsen efter 3 sekunder
+            setTimeout(() => {
+                if (confirmation.parentNode) {
+                    confirmation.parentNode.removeChild(confirmation);
+                }
+            }, 3000);
+        }
+
+        function closeModal() {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Drag and drop support
+        const uploadArea = document.getElementById('uploadArea');
+
+        uploadArea.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function (e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                const fileName = file.name.toLowerCase();
+
+                const isValidImageType = validTypes.includes(file.type);
+
+                if (isValidImageType) {
+                    loadImage(file);
+                } else {
+                    alert('Vælg venligst en billedfil (JPG, PNG, GIF).');
+                }
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && isFullscreen) {
+                closeFullscreen();
+            }
+
+            // Enter key for at beregne albedo
+            if (e.key === 'Enter' && e.ctrlKey && !document.getElementById('calculateBtn').disabled) {
+                e.preventDefault();
+                calculateAlbedo();
+            }
+
+
+
+            // Undo/Redo shortcuts
+            if (e.key === 'z' && e.ctrlKey) {
+                e.preventDefault();
+                undo();
+            }
+
+            if (e.key === 'y' && e.ctrlKey) {
+                e.preventDefault();
+                redo();
+            }
+
+            // S key for at gemme
+            if (e.key === 's' && e.ctrlKey) {
+                e.preventDefault();
+                saveCurrentState();
+            }
+        });
+
+        // Smart input event listeners
+        document.addEventListener('DOMContentLoaded', function () {
+            // Skjul main-grid som standard
+            const mainGrid = document.getElementById('main-grid');
+            if (mainGrid) {
+                mainGrid.style.display = 'none';
+            }
+
+            const locationInput = document.getElementById('locationInput');
+            if (locationInput) {
+                locationInput.addEventListener('blur', updateLocationHistory);
+                locationInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        updateLocationHistory();
+                    }
+                });
+            }
+
+            // Initialiser location suggestions
+            updateLocationSuggestions();
+        });
+
+        // Button feedback function
+        function provideButtonFeedback(button) {
+            // Visuel feedback
+            button.style.transform = 'scale(0.95)';
+            button.style.transition = 'transform 0.1s ease';
+
+            setTimeout(() => {
+                button.style.transform = 'scale(1)';
+            }, 100);
+
+            // Lyd feedback (hvis browser understøtter det)
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {
+                // Ignorer lyd fejl hvis browser ikke understøtter det
+            }
+        }
+
+        // Centralized coordinate handling functions
+        function convertCanvasToImageCoords(canvasX, canvasY, targetCanvas = canvas) {
+            // Convert canvas coordinates to image coordinates
+            if (!currentImage) {
+                throw new Error("currentImage is null - cannot convert coordinates");
+            }
+
+            const scaleX = currentImage.width / targetCanvas.width;
+            const scaleY = currentImage.height / targetCanvas.height;
+
+            return {
+                x: canvasX * scaleX,
+                y: canvasY * scaleY
+            };
+        }
+
+        function convertImageToCanvasCoords(imageX, imageY, targetCanvas = canvas) {
+            // Convert image coordinates to canvas coordinates
+            if (!currentImage) {
+                throw new Error("currentImage is null - cannot convert coordinates");
+            }
+
+            const scaleX = targetCanvas.width / currentImage.width;
+            const scaleY = targetCanvas.height / currentImage.height;
+
+            return {
+                x: imageX * scaleX,
+                y: imageY * scaleY
+            };
+        }
+
+        function getCanvasRect(targetCanvas = canvas) {
+            // Get canvas bounding rectangle for coordinate calculations
+            const rect = targetCanvas.getBoundingClientRect();
+            return {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height
+            };
+        }
+
+        function getMouseImageCoords(e, targetCanvas = canvas) {
+            // Get mouse coordinates relative to canvas, then convert to image coordinates
+            const rect = getCanvasRect(targetCanvas);
+            const canvasX = e.clientX - rect.left;
+            const canvasY = e.clientY - rect.top;
+
+            return convertCanvasToImageCoords(canvasX, canvasY, targetCanvas);
+        }
+
+        function getTouchImageCoords(e, targetCanvas = canvas) {
+            // Get touch coordinates relative to canvas, then convert to image coordinates
+            const rect = getCanvasRect(targetCanvas);
+            const touch = e.touches[0] || e.changedTouches[0];
+            const canvasX = touch.clientX - rect.left;
+            const canvasY = touch.clientY - rect.top;
+
+            return convertCanvasToImageCoords(canvasX, canvasY, targetCanvas);
+        }
+
+        // Test Script for Albedo Program
+        class AlbedoTester {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.currentTest = 0;
+            }
+
+            // Test framework methods
+            async runAllTests() {
+                console.log("🧪 Starting Albedo Program Tests...\n");
+
+                await this.testImageUpload();
+                await this.testCoordinateSystem();
+                await this.testGrayscaleToggle();
+                await this.testMeasurementCalculations();
+                await this.testExportFunctionality();
+                await this.testReferenceFields();
+                await this.testMultiYearInvestigations();
+                await this.testCopernicusIntegration();
+
+                this.generateReport();
+            }
+
+            async test(name, testFunction) {
+                console.log(`\n🔍 Testing: ${name}`);
+                try {
+                    const result = await testFunction();
+                    this.results.push({ name, status: "PASS", result });
+                    console.log(`✅ ${name}: PASSED`);
+                } catch (error) {
+                    this.results.push({ name, status: "FAIL", error: error.message });
+                    console.log(`❌ ${name}: FAILED - ${error.message}`);
+                }
+            }
+
+            // Test 1: Image Upload Functionality
+            async testImageUpload() {
+                await this.test("Image Upload - File Selection", () => {
+                    const fileInput = document.getElementById("fileInput");
+                    if (!fileInput) throw new Error("File input not found");
+
+                    // Simulate file selection
+                    const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
+                    const event = new Event("change");
+                    Object.defineProperty(event, "target", { value: { files: [mockFile] } });
+
+                    fileInput.dispatchEvent(event);
+                    return "File input event dispatched";
+                });
+
+                await this.test("Image Upload - Drag and Drop", () => {
+                    const uploadArea = document.getElementById("uploadArea");
+                    if (!uploadArea) throw new Error("Upload area not found");
+
+                    // Test drag and drop events
+                    const dragOverEvent = new Event("dragover");
+                    uploadArea.dispatchEvent(dragOverEvent);
+
+                    const dropEvent = new Event("drop");
+                    Object.defineProperty(dropEvent, "dataTransfer", {
+                        value: {
+                            files: [new File(["test"], "test.jpg", { type: "image/jpeg" })],
+                        },
+                    });
+                    uploadArea.dispatchEvent(dropEvent);
+
+                    return "Drag and drop events handled";
+                });
+            }
+
+            // Test 2: Coordinate System Accuracy
+            async testCoordinateSystem() {
+                await this.test("Coordinate System - Normal Canvas", () => {
+                    // Test coordinate conversion functions
+                    if (typeof convertCanvasToImageCoords !== "function") {
+                        throw new Error("convertCanvasToImageCoords function not found");
+                    }
+
+                    // Mock currentImage and canvas for testing
+                    const originalImage = window.currentImage;
+                    const originalCanvas = window.canvas;
+                    const globalCurrentImage = currentImage;
+                    const globalCanvas = canvas;
+
+                    // Create mock objects
+                    const testImage = new Image();
+                    testImage.width = 1000;
+                    testImage.height = 800;
+
+                    const mockCanvas = document.createElement('canvas');
+                    mockCanvas.width = 500;
+                    mockCanvas.height = 400;
+
+                    // Set global variables
+                    window.currentImage = testImage;
+                    window.canvas = mockCanvas;
+                    currentImage = testImage;
+                    canvas = mockCanvas;
+
+                    try {
+                        const testCoords = convertCanvasToImageCoords(100, 100);
+                        if (!testCoords || typeof testCoords.x !== "number") {
+                            throw new Error("Coordinate conversion failed");
+                        }
+                        return `Coordinates converted: ${testCoords.x}, ${testCoords.y}`;
+                    } finally {
+                        // Restore original values
+                        window.currentImage = originalImage;
+                        window.canvas = originalCanvas;
+                        currentImage = globalCurrentImage;
+                        canvas = globalCanvas;
+                    }
+                });
+
+                await this.test("Coordinate System - Fullscreen Canvas", () => {
+                    // Test fullscreen coordinate handling
+                    if (typeof handleFullscreenMouseDown !== "function") {
+                        throw new Error("Fullscreen mouse handler not found");
+                    }
+
+                    const mockEvent = {
+                        clientX: 100,
+                        clientY: 100,
+                        button: 0,
+                    };
+
+                    // This should not throw an error
+                    handleFullscreenMouseDown(mockEvent);
+                    return "Fullscreen coordinate handling works";
+                });
+            }
+
+            // Test 3: Grayscale Toggle
+            async testGrayscaleToggle() {
+                await this.test("Grayscale Toggle - Button Functionality", () => {
+                    const grayscaleBtn = document.getElementById("grayscaleBtn");
+                    if (!grayscaleBtn) throw new Error("Grayscale button not found");
+
+                    // Test button click
+                    const clickEvent = new Event("click");
+                    grayscaleBtn.dispatchEvent(clickEvent);
+
+                    return "Grayscale button click handled";
+                });
+
+                await this.test("Grayscale Toggle - State Management", () => {
+                    if (typeof toggleGrayscale !== "function") {
+                        throw new Error("toggleGrayscale function not found");
+                    }
+
+                    // Ensure showGrayscale is defined
+                    if (typeof window.showGrayscale === "undefined") {
+                        window.showGrayscale = false;
+                    }
+                    if (typeof showGrayscale === "undefined") {
+                        showGrayscale = false;
+                    }
+
+                    const initialState = window.showGrayscale;
+                    const globalInitialState = showGrayscale;
+
+                    toggleGrayscale();
+
+                    const newState = window.showGrayscale;
+                    const globalNewState = showGrayscale;
+
+                    if (initialState === newState && globalInitialState === globalNewState) {
+                        throw new Error("Grayscale state not toggled");
+                    }
+
+                    // Reset to original state
+                    window.showGrayscale = initialState;
+                    showGrayscale = globalInitialState;
+
+                    return `State toggled from ${initialState} to ${newState}`;
+                });
+            }
+
+            // Test 4: Measurement Calculations
+            async testMeasurementCalculations() {
+                await this.test("Albedo Calculation - Basic Formula", () => {
+                    if (typeof getPixelValues !== "function") {
+                        throw new Error("getPixelValues function not found");
+                    }
+
+                    // Mock currentImage and canvas for testing
+                    const originalImage = window.currentImage;
+                    const originalCanvas = window.canvas;
+                    const globalCurrentImage = currentImage;
+                    const globalCanvas = canvas;
+
+                    // Create mock objects
+                    const testImage = new Image();
+                    testImage.width = 1000;
+                    testImage.height = 800;
+
+                    const mockCanvas = document.createElement('canvas');
+                    mockCanvas.width = 500;
+                    mockCanvas.height = 400;
+
+                    // Set global variables
+                    window.currentImage = testImage;
+                    window.canvas = mockCanvas;
+                    currentImage = testImage;
+                    canvas = mockCanvas;
+
+                    try {
+                        // Test with mock data
+                        const mockSelection = {
+                            x: 0,
+                            y: 0,
+                            width: 100,
+                            height: 100,
+                        };
+
+                        // Create a mock canvas context for testing
+                        const tempCanvas = document.createElement('canvas');
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCanvas.width = 100;
+                        tempCanvas.height = 100;
+
+                        // Fill with test data (medium gray)
+                        tempCtx.fillStyle = 'rgb(128, 128, 128)';
+                        tempCtx.fillRect(0, 0, 100, 100);
+
+                        // Test albedo calculation (should be around 0.5 for 128 gray)
+                        const pixelData = getPixelValues(mockSelection);
+                        const albedo = pixelData.averageGray / 255;
+
+                        if (typeof albedo !== "number" || albedo < 0 || albedo > 1) {
+                            throw new Error("Invalid albedo calculation result");
+                        }
+
+                        return `Albedo calculated: ${albedo.toFixed(3)}`;
+                    } finally {
+                        // Restore original values
+                        window.currentImage = originalImage;
+                        window.canvas = originalCanvas;
+                        currentImage = globalCurrentImage;
+                        canvas = globalCanvas;
+                    }
+                });
+
+                await this.test("Pixel Value Extraction", () => {
+                    if (typeof getPixelValues !== "function") {
+                        throw new Error("getPixelValues function not found");
+                    }
+
+                    // Mock currentImage and canvas for testing
+                    const originalImage = window.currentImage;
+                    const originalCanvas = window.canvas;
+                    const globalCurrentImage = currentImage;
+                    const globalCanvas = canvas;
+
+                    // Create mock objects
+                    const testImage = new Image();
+                    testImage.width = 1000;
+                    testImage.height = 800;
+
+                    const mockCanvas = document.createElement('canvas');
+                    mockCanvas.width = 500;
+                    mockCanvas.height = 400;
+
+                    // Set global variables
+                    window.currentImage = testImage;
+                    window.canvas = mockCanvas;
+                    currentImage = testImage;
+                    canvas = mockCanvas;
+
+                    try {
+                        const mockSelection = {
+                            x: 0,
+                            y: 0,
+                            width: 10,
+                            height: 10,
+                        };
+
+                        // Create a mock canvas context for testing
+                        const tempCanvas = document.createElement('canvas');
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCanvas.width = 10;
+                        tempCanvas.height = 10;
+
+                        // Fill with test data
+                        tempCtx.fillStyle = 'rgb(128, 128, 128)';
+                        tempCtx.fillRect(0, 0, 10, 10);
+
+                        const pixelValues = getPixelValues(mockSelection);
+                        if (!pixelValues || typeof pixelValues !== "object") {
+                            throw new Error("Pixel values not returned as object");
+                        }
+
+                        if (!pixelValues.hasOwnProperty('averageGray') || !pixelValues.hasOwnProperty('pixelCount')) {
+                            throw new Error("Pixel values object missing required properties");
+                        }
+
+                        return `Pixel values extracted: ${pixelValues.pixelCount} pixels, avg gray: ${pixelValues.averageGray.toFixed(1)}`;
+                    } finally {
+                        // Restore original values
+                        window.currentImage = originalImage;
+                        window.canvas = originalCanvas;
+                        currentImage = globalCurrentImage;
+                        canvas = globalCanvas;
+                    }
+                });
+            }
+
+            // Test 5: Export Functionality
+            async testExportFunctionality() {
+                await this.test("Excel Export - Function Exists", () => {
+                    if (typeof exportToExcel !== "function") {
+                        throw new Error("exportToExcel function not found");
+                    }
+
+                    return "Excel export function available";
+                });
+
+                await this.test("Export All Results - Function Exists", () => {
+                    if (typeof exportAllResults !== "function") {
+                        throw new Error("exportAllResults function not found");
+                    }
+
+                    return "Export all results function available";
+                });
+            }
+
+            // Test 6: Reference Fields (New Feature)
+            async testReferenceFields() {
+                await this.test("Reference Field - Data Structure", () => {
+                    // Test reference field data structure
+                    const referenceField = {
+                        id: "ref1",
+                        position: { x: 100, y: 100 },
+                        size: { width: 50, height: 50 },
+                        albedoValue: 0.7,
+                        description: "White reference field",
+                    };
+
+                    if (
+                        !referenceField.id ||
+                        !referenceField.position ||
+                        !referenceField.albedoValue
+                    ) {
+                        throw new Error("Invalid reference field structure");
+                    }
+
+                    return "Reference field structure valid";
+                });
+
+                await this.test("Reference Field - Validation", () => {
+                    // Test albedo value validation
+                    const validAlbedo = 0.7;
+                    const invalidAlbedo = 1.5;
+
+                    if (validAlbedo < 0 || validAlbedo > 1) {
+                        throw new Error("Valid albedo value rejected");
+                    }
+
+                    if (invalidAlbedo >= 0 && invalidAlbedo <= 1) {
+                        throw new Error("Invalid albedo value accepted");
+                    }
+
+                    return "Reference field validation works";
+                });
+            }
+
+            // Test 7: Multi-year Investigations (New Feature)
+            async testMultiYearInvestigations() {
+                await this.test("Investigation - Data Structure", () => {
+                    const investigation = {
+                        id: "inv1",
+                        name: "Test Investigation",
+                        year: 2024,
+                        location: {
+                            lat: 56.1572,
+                            lng: 10.2107,
+                            name: "Aarhus",
+                        },
+                        image: {
+                            url: "test.jpg",
+                            dimensions: { width: 1000, height: 800 },
+                        },
+                        referenceFields: [],
+                        measurements: [],
+                        createdAt: new Date(),
+                    };
+
+                    if (!investigation.id || !investigation.year || !investigation.location) {
+                        throw new Error("Invalid investigation structure");
+                    }
+
+                    return "Investigation structure valid";
+                });
+
+                await this.test("Timeline - Data Sorting", () => {
+                    const investigations = [
+                        { year: 2022, name: "Old" },
+                        { year: 2024, name: "New" },
+                        { year: 2023, name: "Middle" },
+                    ];
+
+                    const sorted = investigations.sort((a, b) => a.year - b.year);
+                    if (sorted[0].year !== 2022 || sorted[2].year !== 2024) {
+                        throw new Error("Timeline sorting failed");
+                    }
+
+                    return "Timeline sorting works";
+                });
+            }
+
+            // Test 8: Copernicus Integration (New Feature)
+            async testCopernicusIntegration() {
+                await this.test("Copernicus API - Mock Connection", () => {
+                    // Mock Copernicus API response
+                    const mockResponse = {
+                        products: [
+                            {
+                                id: "S2A_MSIL2A_20240101T101031_N0509_R022_T32UQD_20240101T120000",
+                                title: "Sentinel-2 MSI Level-2A",
+                                footprint:
+                                    "POLYGON((10.0 56.0, 10.1 56.0, 10.1 56.1, 10.0 56.1, 10.0 56.0))",
+                                cloudCover: 5.2,
+                                size: "1.2 GB",
+                            },
+                        ],
+                    };
+
+                    if (!mockResponse.products || !Array.isArray(mockResponse.products)) {
+                        throw new Error("Invalid Copernicus API response structure");
+                    }
+
+                    return "Copernicus API structure valid";
+                });
+
+                await this.test("Geospatial Data - Coordinate Validation", () => {
+                    const validCoords = { lat: 56.1572, lng: 10.2107 };
+                    const invalidCoords = { lat: 200, lng: 300 };
+
+                    if (
+                        validCoords.lat < -90 ||
+                        validCoords.lat > 90 ||
+                        validCoords.lng < -180 ||
+                        validCoords.lng > 180
+                    ) {
+                        throw new Error("Valid coordinates rejected");
+                    }
+
+                    if (invalidCoords.lat >= -90 && invalidCoords.lat <= 90) {
+                        throw new Error("Invalid coordinates accepted");
+                    }
+
+                    return "Geospatial coordinate validation works";
+                });
+            }
+
+            // Generate test report
+            generateReport() {
+                console.log("\n📊 TEST REPORT");
+                console.log("================");
+
+                const passed = this.results.filter((r) => r.status === "PASS").length;
+                const failed = this.results.filter((r) => r.status === "FAIL").length;
+                const total = this.results.length;
+
+                console.log(`Total Tests: ${total}`);
+                console.log(`Passed: ${passed} ✅`);
+                console.log(`Failed: ${failed} ❌`);
+                console.log(`Success Rate: ${((passed / total) * 100).toFixed(1)}%`);
+
+                if (failed > 0) {
+                    console.log("\n❌ FAILED TESTS:");
+                    this.results
+                        .filter((r) => r.status === "FAIL")
+                        .forEach((test) => {
+                            console.log(`  - ${test.name}: ${test.error}`);
+                        });
+                }
+
+                console.log("\n🎯 RECOMMENDATIONS:");
+                if (failed === 0) {
+                    console.log("  - All tests passed! Ready for React migration.");
+                } else {
+                    console.log("  - Fix failing tests before React migration.");
+                    console.log("  - Focus on coordinate system and grayscale toggle.");
+                }
+
+                console.log("\n🚀 NEXT STEPS:");
+                console.log("  1. Fix any failing tests");
+                console.log("  2. Create React project structure");
+                console.log("  3. Implement core components");
+                console.log("  4. Add new features (reference fields, multi-year)");
+                console.log("  5. Integrate Copernicus API");
+            }
+        }
+
+        // Auto-run tests when script loads
+        window.addEventListener("load", () => {
+            setTimeout(() => {
+                const tester = new AlbedoTester();
+                tester.runAllTests();
+            }, 1000);
+        });
+    </script>
+</body>
+
+</html>

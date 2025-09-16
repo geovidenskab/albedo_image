@@ -1,0 +1,45 @@
+{
+    "name": "albedo-react",
+    "version": "1.1.0",
+    "description": "Albedo measurement tool with React - enhanced with reference fields, multi-year investigations, and interactive marking system",
+    "main": "src/index.js",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "test": "vitest"
+    },
+    "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "@mui/icons-material": "^7.3.2",
+        "@mui/material": "^7.3.2",
+        "date-fns": "^2.30.0",
+        "konva": "^9.3.22",
+        "papaparse": "^5.4.1",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-konva": "^18.2.12",
+        "recharts": "^2.8.0",
+        "use-image": "^1.1.4",
+        "uuid": "^9.0.1",
+        "xlsx": "^0.18.5"
+    },
+    "devDependencies": {
+        "@types/react": "^18.2.37",
+        "@types/react-dom": "^18.2.15",
+        "@vitejs/plugin-react": "^4.1.1",
+        "vite": "^5.0.0",
+        "vitest": "^1.0.0"
+    },
+    "keywords": [
+        "albedo",
+        "satellite",
+        "climate",
+        "measurement",
+        "react",
+        "copernicus"
+    ],
+    "author": "Silkeborg Gymnasium",
+    "license": "MIT"
+}
