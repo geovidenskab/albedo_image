@@ -181,3 +181,4 @@ Dette projekt er licenseret under MIT License - se [LICENSE](LICENSE) filen for 
 - **Silkeborg Gymnasium** - Original koncept
 - **Dewpoint Design System** - UI inspiration
 - **Copernicus Programme** - Satellit data
+# Trigger workflow
