@@ -60,9 +60,12 @@ const SimpleAlbedo = () => {
         // Skaler til den plads der faktisk er — på telefon hele bredden,
         // på desktop pladsen ved siden af sidepanelet. Intet minimum, så
         // billedet aldrig løber ud over en lille skærm.
-        const mobile = window.innerWidth < 700;
+        // clientWidth frem for innerWidth: innerWidth vokser med siden, hvis noget
+        // løber ud over skærmen på en telefon, og så bliver billedet også for bredt.
+        const skaermBredde = document.documentElement.clientWidth || window.innerWidth;
+        const mobile = skaermBredde < 700;
         const maxWidth = mobile
-          ? window.innerWidth - 24
+          ? skaermBredde - 24
           : Math.max(window.innerWidth - 300 - 80, 480);
         const maxHeight = mobile
           ? window.innerHeight * 0.55
@@ -524,6 +527,10 @@ const SimpleAlbedo = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            // På telefon skal knapperne ned under titlen — ellers løber de ud over
+            // skærmen, og siden bliver bredere end telefonen.
+            flexWrap: "wrap",
+            gap: isMobile ? "10px" : "1rem",
             width: "100%",
             maxWidth: "100%",
             margin: "0 auto",
@@ -536,7 +543,7 @@ const SimpleAlbedo = () => {
               gap: "1rem",
             }}
           >
-            <div style={{ fontSize: "3.75rem", lineHeight: 1 }}>🌍</div>
+            <div style={{ fontSize: isMobile ? "2.4rem" : "3.75rem", lineHeight: 1 }}>🌍</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.1rem" }}>
               <h1
                 style={{
@@ -577,7 +584,7 @@ const SimpleAlbedo = () => {
             </div>
           </div>
           {imageUrl && (
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: isMobile ? "6px" : "10px", alignItems: "center", flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
               <button
                 onClick={handleUndoLast}
                 disabled={selections.length === 0}
