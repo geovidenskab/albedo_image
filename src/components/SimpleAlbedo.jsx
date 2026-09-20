@@ -35,6 +35,9 @@ const SimpleAlbedo = () => {
   const [showImageTypeDialog, setShowImageTypeDialog] = useState(false);
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
   const [imageType, setImageType] = useState(null); // 'satellite' or 'photo'
+  // Foto UDEN referencekort (fx et skærmbillede fra en dronevideo): eleven vælger
+  // selv én flade i billedet som reference og skønner dens albedo.
+  const [egenReference, setEgenReference] = useState(false);
   const [measurementInfo, setMeasurementInfo] = useState({
     location: "",
     comments: "",
@@ -104,8 +107,12 @@ const SimpleAlbedo = () => {
     }
   };
 
-  const handleImageTypeSelection = (type) => {
+  const handleImageTypeSelection = (valg) => {
+    const type = valg === 'egen' ? 'photo' : valg;
     setImageType(type);
+    setEgenReference(valg === 'egen');
+    if (valg === 'egen') setRefPatches([{ albedo: 50, label: "is" }]);
+    if (valg === 'photo') setRefPatches(STANDARD_PATCHES);
     setShowImageTypeDialog(false);
     
     if (pendingImageUrl) {
@@ -965,12 +972,36 @@ const SimpleAlbedo = () => {
               const iAlt = imageType === 'photo' ? REFERENCE_PATCHES.length + 1 : 1;
               let trin = null;
               if (imageType === 'photo' && refCount < REFERENCE_PATCHES.length) {
-                trin = <>Trin {refCount + 1} af {iAlt}: Træk en firkant på <b>{REFERENCE_PATCHES[refCount].label}</b> på referencekortet</>;
+                trin = egenReference
+                  ? <>Trin {refCount + 1} af {iAlt}: Træk en firkant på jeres reference: <b>{REFERENCE_PATCHES[refCount].label}</b></>
+                  : <>Trin {refCount + 1} af {iAlt}: Træk en firkant på <b>{REFERENCE_PATCHES[refCount].label}</b> på referencekortet</>;
               } else if (maalinger.length === 0) {
                 trin = <>Trin {iAlt} af {iAlt}: Træk en firkant på den <b>overflade, du vil måle</b></>;
               }
               return (
                 <div style={{ border: "1px solid #0A0F3C", backgroundColor: "#fff" }}>
+                  {egenReference && refPatches.length === 1 && (
+                    <div style={{ padding: "10px 14px", backgroundColor: "#fffaef", borderBottom: "1px solid #e3dfc8", fontSize: "0.9rem", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                      <span>Jeres reference:</span>
+                      <input
+                        type="text"
+                        value={refPatches[0].label}
+                        onChange={(e) => setRefPatches([{ ...refPatches[0], label: e.target.value }])}
+                        style={{ width: "7rem", padding: "4px 6px", border: "1px solid #999", borderRadius: 0, fontSize: "0.9rem" }}
+                      />
+                      <span>med albedo</span>
+                      <input
+                        type="number" min="1" max="99" step="1"
+                        value={refPatches[0].albedo}
+                        onChange={(e) => setRefPatches([{ ...refPatches[0], albedo: Math.max(1, Math.min(99, Number(e.target.value) || 0)) }])}
+                        style={{ width: "4rem", padding: "4px 6px", border: "1px solid #999", borderRadius: 0, fontSize: "0.9rem", textAlign: "right" }}
+                      />
+                      <span>%</span>
+                      <span style={{ flexBasis: "100%", fontSize: "0.8rem", color: "#666" }}>
+                        Ret tallet og se, hvor meget jeres resultat flytter sig. Det kan aldrig blive mere sikkert end referencen.
+                      </span>
+                    </div>
+                  )}
                   {trin && (
                     <div style={{ backgroundColor: "#0A0F3C", color: "#fff", padding: "10px 14px", fontSize: "0.95rem" }}>{trin}</div>
                   )}
@@ -1290,6 +1321,25 @@ const SimpleAlbedo = () => {
                 🛰️ Satellitbillede
                 <div style={{ fontSize: "0.85rem", fontWeight: 400, marginTop: "5px", opacity: 0.9 }}>
                   Et satellitbillede uden referencekort (fx Sentinel-2 fra Copernicus Browser)
+                </div>
+              </button>
+              <button
+                onClick={() => handleImageTypeSelection('egen')}
+                style={{
+                  padding: "15px 20px",
+                  backgroundColor: "#4a90e2",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 0,
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  textAlign: "left",
+                }}
+              >
+                🎞️ Foto uden referencekort
+                <div style={{ fontSize: "0.85rem", fontWeight: 400, marginTop: "5px", opacity: 0.9 }}>
+                  Fx et skærmbillede fra en video — du vælger selv en flade i billedet som reference
                 </div>
               </button>
             </div>
