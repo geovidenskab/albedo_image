@@ -32,12 +32,21 @@ const SimpleAlbedo = () => {
   const [refPatches, setRefPatches] = useState(STANDARD_PATCHES);
   // Kalibreringen forudsætter mørkest-først; sortér altid efter albedo
   const REFERENCE_PATCHES = [...refPatches].sort((a, b) => a.albedo - b.albedo);
-  const [showImageTypeDialog, setShowImageTypeDialog] = useState(false);
-  const [pendingImageUrl, setPendingImageUrl] = useState(null);
   const [imageType, setImageType] = useState(null); // 'satellite' or 'photo'
   // Foto UDEN referencekort (fx et skærmbillede fra en dronevideo): eleven vælger
   // selv én flade i billedet som reference og skønner dens albedo.
   const [egenReference, setEgenReference] = useState(false);
+  // Billedtypen vælges FØR upload. Standard er elevens eget foto med referencekort;
+  // de to andre typer vælges via et lille link på startskærmen.
+  const [ventendeType, setVentendeType] = useState('photo');
+
+  // «Mine målinger»: tal fra TIDLIGERE fotos. Det aktuelle fotos målinger regnes
+  // altid live af markeringerne og lægges oveni ved visning. Gemmes i browseren,
+  // så tallene overlever et nyt foto og en lukket fane.
+  const LOG_KEY = "albedo_mine_maalinger_v1";
+  const [tidligere, setTidligere] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); } catch { return []; }
+  });
   const [measurementInfo, setMeasurementInfo] = useState({
     location: "",
     comments: "",
@@ -56,6 +65,11 @@ const SimpleAlbedo = () => {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // Gem «Mine målinger» løbende. Ved genindlæsning bliver alt til «tidligere».
+  useEffect(() => {
+    try { localStorage.setItem(LOG_KEY, JSON.stringify([...tidligere, ...aktuelleMaalinger()])); } catch { /* fuldt lager */ }
+  });
 
   // Load image using direct Image object (more reliable)
   useEffect(() => {
@@ -101,24 +115,21 @@ const SimpleAlbedo = () => {
     const file = e.target.files[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      setPendingImageUrl(url);
       setImageFile(file);
-      setShowImageTypeDialog(true);
+      anvendBilledtype(ventendeType, url);
     }
   };
 
-  const handleImageTypeSelection = (valg) => {
+  const anvendBilledtype = (valg, url) => {
     const type = valg === 'egen' ? 'photo' : valg;
     setImageType(type);
     setEgenReference(valg === 'egen');
     if (valg === 'egen') setRefPatches([{ albedo: 50, label: "is" }]);
     if (valg === 'photo') setRefPatches(STANDARD_PATCHES);
-    setShowImageTypeDialog(false);
-    
-    if (pendingImageUrl) {
-      setImageUrl(pendingImageUrl);
+
+    if (url) {
+      setImageUrl(url);
       setSelections([]);
-      setSavedMeasurements([]);
       
       if (type === 'satellite') {
         // Satellitbilleder er allerede reflektans-kalibrerede: albedo aflæses
@@ -202,7 +213,7 @@ const SimpleAlbedo = () => {
     if (pendingSelection) {
       const newSelection = {
         ...pendingSelection,
-        areaName: areaName.trim() || `Måleområde ${selections.length}`,
+        areaName: areaName.trim() || `Måleområde ${selections.filter((sel) => !sel.isReference).length + 1}`,
       };
       setSelections([...selections, newSelection]);
       setShowNameDialog(false);
@@ -215,7 +226,7 @@ const SimpleAlbedo = () => {
     if (pendingSelection) {
       const newSelection = {
         ...pendingSelection,
-        areaName: `Måleområde ${selections.length}`,
+        areaName: `Måleområde ${selections.filter((sel) => !sel.isReference).length + 1}`,
       };
       setSelections([...selections, newSelection]);
       setShowNameDialog(false);
@@ -390,6 +401,28 @@ const SimpleAlbedo = () => {
     });
 
     return results;
+  };
+
+  // «Mine målinger»: det aktuelle fotos måleområder som {navn, albedo i %}
+  const aktuelleMaalinger = () =>
+    selections
+      .filter((sel) => !sel.isReference)
+      .map((sel, i) => ({ id: sel.id, navn: sel.areaName || `Måleområde ${i + 1}`, albedo: calculateAlbedoForSelection(sel) }))
+      .filter((m) => m.albedo !== null);
+
+  // Saml tidligere og aktuelle tal pr. navn (asfalt, græs …) med middel og spredning
+  const grupperMaalinger = () => {
+    const grupper = new Map();
+    [...tidligere, ...aktuelleMaalinger()].forEach((m) => {
+      const noegle = m.navn.trim().toLowerCase();
+      if (!grupper.has(noegle)) grupper.set(noegle, { navn: m.navn.trim(), tal: [] });
+      grupper.get(noegle).tal.push(m.albedo);
+    });
+    return [...grupper.values()].map((g) => {
+      const middel = g.tal.reduce((a, b) => a + b, 0) / g.tal.length;
+      const spredning = Math.max(...g.tal.map((t) => Math.abs(t - middel)));
+      return { ...g, middel, spredning };
+    });
   };
 
   // Calculate albedo for a single selection (for display on canvas)
@@ -612,73 +645,12 @@ const SimpleAlbedo = () => {
                 Fortryd sidste
               </button>
               <button
-                onClick={handleFinishMeasurements}
-                disabled={selections.length < 2}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#4a90e2",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 0,
-                  cursor: selections.length < 2 ? "not-allowed" : "pointer",
-                  fontSize: "0.9rem",
-                }}
-              >
-                Afslut opmålinger
-              </button>
-              <button
-                onClick={handleClearAll}
-                disabled={selections.length === 0}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#4a90e2",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 0,
-                  cursor: selections.length === 0 ? "not-allowed" : "pointer",
-                  fontSize: "0.9rem",
-                }}
-              >
-                Ryd alt
-              </button>
-              {savedMeasurements.length > 0 && (
-                <>
-                  <button
-                    onClick={handleExportCSV}
-                    style={{
-                      padding: "8px 16px",
-                      backgroundColor: "#4a90e2",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 0,
-                      cursor: "pointer",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    Eksporter CSV
-                  </button>
-                  <button
-                    onClick={handleExportExcel}
-                    style={{
-                      padding: "8px 16px",
-                      backgroundColor: "#4a90e2",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 0,
-                      cursor: "pointer",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    Eksporter Excel
-                  </button>
-                </>
-              )}
-              <button
                 onClick={() => {
+                  // Tallene fra dette foto bliver i «Mine målinger»
+                  setTidligere([...tidligere, ...aktuelleMaalinger()]);
                   setImageUrl(null);
                   setImageFile(null);
                   setSelections([]);
-                  setSavedMeasurements([]);
                   setMeasurementInfo({ location: "", comments: "" });
                 }}
                 style={{
@@ -691,7 +663,7 @@ const SimpleAlbedo = () => {
                   fontSize: "0.9rem",
                 }}
               >
-                Upload nyt billede
+                Nyt billede
               </button>
             </div>
           )}
@@ -728,7 +700,12 @@ const SimpleAlbedo = () => {
               onClick={() => document.getElementById("imageUpload").click()}
             >
               <p style={{ fontSize: "1.6rem", margin: "0 0 6px" }}>📷</p>
-              <p style={{ margin: 0, fontWeight: 600 }}>{isMobile ? "Tryk for at tage eller vælge et foto" : "Klik for at vælge et foto — eller træk det hertil"}</p>
+              <p style={{ margin: 0, fontWeight: 600 }}>{isMobile ? "Tryk for at tage eller vælge et foto" : "Klik for at vælge et foto"}</p>
+              {ventendeType !== 'photo' && (
+                <p style={{ margin: "6px 0 0", fontSize: "0.85rem", color: "#9a3412" }}>
+                  Valgt: {ventendeType === 'egen' ? "foto uden referencekort" : "satellitbillede"}
+                </p>
+              )}
               <input
                 id="imageUpload"
                 type="file"
@@ -737,6 +714,17 @@ const SimpleAlbedo = () => {
                 style={{ display: "none" }}
               />
             </div>
+            <p style={{ margin: "10px 0 0", fontSize: "0.8rem", color: "#666" }}>
+              Andet billede:{" "}
+              {[["photo", "foto med referencekort"], ["egen", "foto uden referencekort"], ["satellite", "satellitbillede"]]
+                .filter(([t]) => t !== ventendeType)
+                .map(([t, tekst], i) => (
+                  <React.Fragment key={t}>
+                    {i > 0 && " · "}
+                    <a href="#" onClick={(e) => { e.preventDefault(); setVentendeType(t); }}>{tekst}</a>
+                  </React.Fragment>
+                ))}
+            </p>
             <p style={{ margin: "14px 0 0", fontSize: "0.85rem", color: "#555" }}>
               <b>Albedo</b> er et tal mellem 0 og 1: hvor stor en del af sollyset en overflade kaster tilbage.
               Sne omkring 0,85 · asfalt omkring 0,10.{" "}
@@ -759,30 +747,34 @@ const SimpleAlbedo = () => {
               order: isMobile ? 2 : 0,
             }}
           >
-            <div style={{ marginBottom: "20px" }}>
-              <h3 style={{ marginTop: 0, marginBottom: "10px" }}>Sådan gør du:</h3>
-              {imageType === 'photo' ? (
-                <ol style={{ marginLeft: "20px", fontSize: "0.9rem" }}>
-                  {REFERENCE_PATCHES.map((patch, i) => (
-                    <li key={i} style={{ marginBottom: "8px" }}>
-                      Markér <strong>{patch.label}</strong> (albedo {patch.albedo} %)
-                    </li>
-                  ))}
-                  <li style={{ marginBottom: "8px" }}>
-                    Markér derefter dine <strong>måleområder</strong>
-                  </li>
-                </ol>
+            {/* Mine målinger: ét sted til tallene — på tværs af fotos */}
+            <div style={{ marginBottom: "18px", backgroundColor: "#fff", border: "1px solid #0A0F3C", padding: "12px 14px" }}>
+              <h3 style={{ margin: "0 0 8px", fontSize: "1rem", color: "#0A0F3C" }}>Mine målinger</h3>
+              {grupperMaalinger().length === 0 ? (
+                <p style={{ margin: 0, fontSize: "0.85rem", color: "#666" }}>
+                  Her samles jeres tal — også når I tager et nyt foto. Giv hver måling et navn (asfalt, græs …).
+                </p>
               ) : (
-                <ol style={{ marginLeft: "20px", fontSize: "0.9rem" }}>
-                  <li style={{ marginBottom: "8px" }}>
-                    Markér de <strong>områder</strong> du vil måle — albedo aflæses
-                    direkte af pixelværdierne
-                  </li>
-                  <li style={{ marginBottom: "8px" }}>
-                    Brug et <strong>kalibreret reflektansbillede</strong>, fx
-                    Sentinel-2 fra Copernicus Browser
-                  </li>
-                </ol>
+                <>
+                  {grupperMaalinger().map((g) => (
+                    <div key={g.navn} style={{ padding: "6px 0", borderTop: "1px solid #e5e7eb", fontSize: "0.9rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "baseline" }}>
+                        <strong>{g.navn}</strong>
+                        <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                          <strong>{fmtAlbedo(g.middel)}</strong>
+                          {g.tal.length > 1 && <span style={{ color: "#555" }}> ± {fmtAlbedo(g.spredning)}</span>}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "0.78rem", color: "#666", fontVariantNumeric: "tabular-nums" }}>
+                        {g.tal.length === 1 ? "1 måling" : `${g.tal.length} målinger: ${g.tal.map(fmtAlbedo).join(" · ")}`}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => { if (window.confirm("Slet alle jeres målinger?")) { setTidligere([]); setSelections(selections.filter((sel) => sel.isReference)); } }}
+                    style={{ marginTop: "8px", padding: "3px 8px", fontSize: "0.75rem", border: "1px solid #bbb", borderRadius: 0, background: "#fff", color: "#555", cursor: "pointer" }}
+                  >Slet mine målinger</button>
+                </>
               )}
             </div>
 
@@ -846,27 +838,10 @@ const SimpleAlbedo = () => {
             )}
             {/* «Markér nu»-prompten står nu i guide-striben over billedet */}
 
-            <div style={{ marginBottom: "20px" }}>
-              <p style={{ fontWeight: 600, marginBottom: "8px" }}>
-                Markeringer: {selections.length}
-              </p>
-              {selections.length === 0 && (
-                <p style={{ fontSize: "0.85rem", color: "#dc2626", margin: 0 }}>
-                  ⚠ {imageType === 'photo' ? `Start med det mørkeste referencefelt (${REFERENCE_PATCHES[0].label})` : 'Markér et område på billedet'}
-                </p>
-              )}
-              {selections.length > 0 && selections.find(s => s.isReference) && (
-                <p style={{ fontSize: "0.85rem", color: "#059669", margin: 0 }}>
-                  ✓ Referencekort markeret ({selections.filter(s => !s.isReference).length} måleområde{selections.filter(s => !s.isReference).length !== 1 ? "r" : ""})
-                </p>
-              )}
-              {selections.length > 0 && !selections.find(s => s.isReference) && (
-                <p style={{ fontSize: "0.85rem", color: "#dc2626", margin: 0 }}>
-                  ⚠ Du skal have et referencekort!
-                </p>
-              )}
-            </div>
-
+            {/* Alt til rapport og eksport — foldet væk for den almindelige bruger */}
+            <details style={{ marginBottom: "16px", padding: "10px 12px", backgroundColor: "#fff", border: "1px solid #e5e7eb" }}>
+              <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>Avanceret: detaljer, gem og eksport</summary>
+              <div style={{ height: "10px" }} />
             {/* Oplysninger for måling */}
             <div
               style={{
@@ -961,6 +936,12 @@ const SimpleAlbedo = () => {
                 </div>
               </div>
             )}
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+                <button onClick={handleExportCSV} disabled={savedMeasurements.length === 0} style={{ padding: "6px 10px", fontSize: "0.8rem", border: "1px solid #999", borderRadius: 0, background: "#fff", cursor: savedMeasurements.length === 0 ? "not-allowed" : "pointer" }}>Eksportér CSV</button>
+                <button onClick={handleExportExcel} disabled={savedMeasurements.length === 0} style={{ padding: "6px 10px", fontSize: "0.8rem", border: "1px solid #999", borderRadius: 0, background: "#fff", cursor: savedMeasurements.length === 0 ? "not-allowed" : "pointer" }}>Eksportér Excel</button>
+                <button onClick={handleClearAll} disabled={selections.length === 0} style={{ padding: "6px 10px", fontSize: "0.8rem", border: "1px solid #999", borderRadius: 0, background: "#fff", color: "#b04040", cursor: selections.length === 0 ? "not-allowed" : "pointer" }}>Ryd alle markeringer</button>
+              </div>
+            </details>
           </div>
 
           {/* Hovedindhold - billede og målinger */}
@@ -1019,7 +1000,7 @@ const SimpleAlbedo = () => {
                         );
                       })}
                       <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "6px" }}>
-                        Træk flere firkanter for at måle flere overflader. Notér tallene — eller tryk «Gem måling» nederst.
+                        Træk flere firkanter for at måle flere overflader. Tallene samles under «Mine målinger» — også når I tager et nyt foto.
                       </div>
                     </div>
                   )}
@@ -1204,7 +1185,7 @@ const SimpleAlbedo = () => {
                               <tr key={rIdx}>
                                 <td style={{ padding: "6px", border: "1px solid #ddd" }}>{result.area}</td>
                                 <td style={{ padding: "6px", border: "1px solid #ddd", fontWeight: 600, color: "#059669" }}>
-                                  {result.albedo.toFixed(2)}%
+                                  {fmtAlbedo(result.albedo)}
                                 </td>
                                 <td style={{ padding: "6px", border: "1px solid #ddd" }}>
                                   {result.rawPixelValue.toFixed(2)}
@@ -1238,8 +1219,8 @@ const SimpleAlbedo = () => {
                                 <div style={{ marginTop: "4px", marginLeft: "8px", fontSize: "0.8rem", color: "#374151" }}>
                                   <div>Pixel værdi: <strong>{result.rawPixelValue.toFixed(2)}</strong></div>
                                   <div>Kalibrering: <strong>{result.calibration || "—"}</strong></div>
-                                  <div>Albedo: <strong>{fmtAlbedo(result.albedo)}</strong> ({result.albedo.toFixed(1)} %)</div>
-                                  <div style={{ marginTop: "4px", color: "#059669", fontWeight: 600 }}>Resultat: {result.albedo.toFixed(2)}% albedo</div>
+                                  <div>Albedo: <strong>{fmtAlbedo(result.albedo)}</strong> ({Math.round(result.albedo)} %)</div>
+                                  <div style={{ marginTop: "4px", color: "#059669", fontWeight: 600 }}>Resultat: {fmtAlbedo(result.albedo)} albedo</div>
                                 </div>
                               </div>
                             );
@@ -1255,98 +1236,6 @@ const SimpleAlbedo = () => {
           </div>
         </>
       )}
-
-      {showImageTypeDialog && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              padding: "30px",
-              borderRadius: 0,
-              minWidth: "400px",
-              maxWidth: "500px",
-            }}
-          >
-            <h2 style={{ marginTop: 0, marginBottom: "15px" }}>Vælg billedtype</h2>
-            <p style={{ marginBottom: "20px", color: "#666" }}>
-              Hvad er det for et billede?
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-              <button
-                onClick={() => handleImageTypeSelection('photo')}
-                style={{
-                  padding: "15px 20px",
-                  backgroundColor: "#0A0F3C",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 0,
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  textAlign: "left",
-                }}
-              >
-                📷 Selvtaget foto
-                <div style={{ fontSize: "0.85rem", fontWeight: 400, marginTop: "5px", opacity: 0.9 }}>
-                  Mit eget foto med referencekortet i billedet — det skal du vælge, hvis du har målt i skolegården
-                </div>
-              </button>
-              <button
-                onClick={() => handleImageTypeSelection('satellite')}
-                style={{
-                  padding: "15px 20px",
-                  backgroundColor: "#4a90e2",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 0,
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  textAlign: "left",
-                }}
-              >
-                🛰️ Satellitbillede
-                <div style={{ fontSize: "0.85rem", fontWeight: 400, marginTop: "5px", opacity: 0.9 }}>
-                  Et satellitbillede uden referencekort (fx Sentinel-2 fra Copernicus Browser)
-                </div>
-              </button>
-              <button
-                onClick={() => handleImageTypeSelection('egen')}
-                style={{
-                  padding: "15px 20px",
-                  backgroundColor: "#4a90e2",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 0,
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  textAlign: "left",
-                }}
-              >
-                🎞️ Foto uden referencekort
-                <div style={{ fontSize: "0.85rem", fontWeight: 400, marginTop: "5px", opacity: 0.9 }}>
-                  Fx et skærmbillede fra en video — du vælger selv en flade i billedet som reference
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
 
       {showNameDialog && (
         <div
@@ -1371,12 +1260,25 @@ const SimpleAlbedo = () => {
               minWidth: "300px",
             }}
           >
-            <h3>Navngiv måleområde</h3>
+            <h3 style={{ marginTop: 0 }}>Hvad har I målt?</h3>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
+              {(egenReference ? ["Vand", "Mørk is", "Sne"] : ["Asfalt", "Græs", "Fliser", "Grus"]).map((navn) => (
+                <button
+                  key={navn}
+                  onClick={() => {
+                    if (!pendingSelection) return;
+                    setSelections([...selections, { ...pendingSelection, areaName: navn }]);
+                    setShowNameDialog(false); setAreaName(""); setPendingSelection(null);
+                  }}
+                  style={{ padding: "10px 16px", fontSize: "1rem", border: "1px solid #0A0F3C", borderRadius: 0, background: "#fff", color: "#0A0F3C", cursor: "pointer" }}
+                >{navn}</button>
+              ))}
+            </div>
             <input
               type="text"
               value={areaName}
               onChange={(e) => setAreaName(e.target.value)}
-              placeholder="Indtast navn eller lad stå tomt for automatisk nummerering"
+              placeholder="Andet — skriv selv"
               style={{
                 width: "100%",
                 padding: "10px",
