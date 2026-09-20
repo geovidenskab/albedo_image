@@ -298,8 +298,16 @@ const SimpleAlbedo = () => {
         return { toAlbedo: (v) => (v > 0 ? Math.min(a * Math.pow(v, b), 100) : 0), mode };
       }
     }
+    // Ét felt kan ikke fastlægge kameraets tonekurve, så her antages standard
+    // sRGB-kodning: pixelværdierne regnes om til lysmængde, før forholdet tages.
+    // Uden det overvurderes mørke flader groft (ægte 10 % → ca. 30 %).
+    const srgbToLinear = (v) => {
+      const c = v / 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
     const last = pairs[pairs.length - 1];
-    return { toAlbedo: (v) => (last.v > 0 ? Math.min((v / last.v) * last.a, 100) : 0), mode: 'ét referencefelt' };
+    const lastLin = srgbToLinear(last.v);
+    return { toAlbedo: (v) => (lastLin > 0 ? Math.min((srgbToLinear(v) / lastLin) * last.a, 100) : 0), mode: 'ét referencefelt (sRGB-lineariseret)' };
   };
 
   const calculateAlbedo = () => {
