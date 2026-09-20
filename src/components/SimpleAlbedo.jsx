@@ -40,6 +40,10 @@ const SimpleAlbedo = () => {
     comments: "",
   });
 
+  // Albedo vises som decimaltal med komma, som på satellitkortet og i vejledningen.
+  // Internt regnes der i procent.
+  const fmtAlbedo = (pct) => (pct / 100).toLocaleString("da-DK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   const stageRef = useRef();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 700);
 
@@ -693,36 +697,44 @@ const SimpleAlbedo = () => {
         <div
           style={{
             width: "100%",
-            padding: "40px",
+            padding: isMobile ? "16px" : "40px",
             display: "flex",
             justifyContent: "center",
-            alignItems: "center",
+            alignItems: "flex-start",
           }}
         >
-          <div
-            style={{
-              border: "2px dashed #ccc",
-              borderRadius: 0,
-              padding: "40px",
-              textAlign: "center",
-              cursor: "pointer",
-              backgroundColor: "#f9f9f9",
-              maxWidth: "600px",
-            }}
-            onClick={() => document.getElementById("imageUpload").click()}
-          >
-            <p style={{ fontSize: "1.2rem", marginBottom: "10px" }}>📁</p>
-            <p>Klik eller træk et billede hertil</p>
-            <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "5px" }}>
-              JPG, PNG, GIF
+          <div style={{ maxWidth: "560px", width: "100%", backgroundColor: "rgba(255,255,255,0.94)", padding: isMobile ? "18px" : "28px", border: "1px solid #e5e7eb" }}>
+            <h2 style={{ margin: "0 0 10px", fontSize: "1.25rem", color: "#0A0F3C" }}>Sådan måler du albedo</h2>
+            <ol style={{ margin: "0 0 16px", paddingLeft: "1.3rem", lineHeight: 1.6, fontSize: "0.98rem" }}>
+              <li>Læg <a href="/sermilik/undervisning/referencekort.html">referencekortet</a> på overfladen, og tag et foto <b>lige ned ovenfra</b>.</li>
+              <li>Læg fotoet ind herunder.</li>
+              <li>Markér kortets <b>sorte</b> felt, så det <b>hvide</b> — og til sidst den overflade, du vil måle.</li>
+            </ol>
+            <div
+              style={{
+                border: "2px dashed #9aa5b1",
+                padding: isMobile ? "22px 12px" : "30px",
+                textAlign: "center",
+                cursor: "pointer",
+                backgroundColor: "#f9f9f9",
+              }}
+              onClick={() => document.getElementById("imageUpload").click()}
+            >
+              <p style={{ fontSize: "1.6rem", margin: "0 0 6px" }}>📷</p>
+              <p style={{ margin: 0, fontWeight: 600 }}>{isMobile ? "Tryk for at tage eller vælge et foto" : "Klik for at vælge et foto — eller træk det hertil"}</p>
+              <input
+                id="imageUpload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: "none" }}
+              />
+            </div>
+            <p style={{ margin: "14px 0 0", fontSize: "0.85rem", color: "#555" }}>
+              <b>Albedo</b> er et tal mellem 0 og 1: hvor stor en del af sollyset en overflade kaster tilbage.
+              Sne omkring 0,85 · asfalt omkring 0,10.{" "}
+              <a href="/sermilik/undervisning/oevelsesvejledning.html">Øvelsesvejledningen</a>
             </p>
-            <input
-              id="imageUpload"
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{ display: "none" }}
-            />
           </div>
         </div>
       ) : (
@@ -768,8 +780,11 @@ const SimpleAlbedo = () => {
             </div>
 
             {imageType === 'photo' && (
-              <div style={{ marginBottom: "16px", padding: "12px", backgroundColor: "#fafaf4", borderRadius: 0, border: "1px solid #e3dfc8" }}>
-                <p style={{ margin: "0 0 8px", fontWeight: 600, fontSize: "0.9rem" }}>
+              <details style={{ marginBottom: "16px", padding: "10px 12px", backgroundColor: "#fafaf4", borderRadius: 0, border: "1px solid #e3dfc8" }}>
+                <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
+                  Avanceret: eget referencekort
+                </summary>
+                <p style={{ margin: "8px 0", fontWeight: 600, fontSize: "0.9rem" }}>
                   Referencefelter <span style={{ fontWeight: 400, color: "#666" }}>(officiel albedo i %)</span>
                 </p>
                 {refPatches.map((patch, i) => (
@@ -820,31 +835,9 @@ const SimpleAlbedo = () => {
                   Standard er det officielle kort (sort 5 %, hvidt papir 75 %). Bruger du
                   eget referencepapir, så ret felterne — markér dem altid mørkest først.
                 </p>
-              </div>
+              </details>
             )}
-            {imageType === 'photo' && (() => {
-              const refCount = selections.filter((sel) => sel.isReference).length;
-              const nextPatch = REFERENCE_PATCHES[refCount];
-              return nextPatch ? (
-                <div style={{ marginBottom: "20px", padding: "12px", backgroundColor: "#fff7ed", borderRadius: 0, border: "1px solid #fdba74" }}>
-                  <p style={{ margin: 0, fontWeight: 600, fontSize: "0.9rem", color: "#9a3412" }}>
-                    Markér nu: {nextPatch.label} (albedo {nextPatch.albedo} %)
-                  </p>
-                  <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "#7c2d12" }}>
-                    Referencefelt {refCount + 1} af {REFERENCE_PATCHES.length} — træk en firkant på feltet i billedet.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ marginBottom: "20px", padding: "12px", backgroundColor: "#f0fdf4", borderRadius: 0, border: "1px solid #86efac" }}>
-                  <p style={{ margin: 0, fontWeight: 600, fontSize: "0.9rem", color: "#166534" }}>
-                    ✓ Alle {REFERENCE_PATCHES.length} referencefelter markeret
-                  </p>
-                  <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "#14532d" }}>
-                    Markér nu de overflader du vil måle.
-                  </p>
-                </div>
-              );
-            })()}
+            {/* «Markér nu»-prompten står nu i guide-striben over billedet */}
 
             <div style={{ marginBottom: "20px" }}>
               <p style={{ fontWeight: 600, marginBottom: "8px" }}>
@@ -964,7 +957,45 @@ const SimpleAlbedo = () => {
           </div>
 
           {/* Hovedindhold - billede og målinger */}
-          <div style={{ flex: 1, display: "flex", gap: "20px", padding: "20px", overflow: "hidden" }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "12px", padding: isMobile ? "12px" : "20px", overflow: "hidden" }}>
+            {/* Guide: det næste skridt — og resultaterne — står lige over billedet */}
+            {(() => {
+              const refCount = selections.filter((sel) => sel.isReference).length;
+              const maalinger = selections.filter((sel) => !sel.isReference);
+              const iAlt = imageType === 'photo' ? REFERENCE_PATCHES.length + 1 : 1;
+              let trin = null;
+              if (imageType === 'photo' && refCount < REFERENCE_PATCHES.length) {
+                trin = <>Trin {refCount + 1} af {iAlt}: Træk en firkant på <b>{REFERENCE_PATCHES[refCount].label}</b> på referencekortet</>;
+              } else if (maalinger.length === 0) {
+                trin = <>Trin {iAlt} af {iAlt}: Træk en firkant på den <b>overflade, du vil måle</b></>;
+              }
+              return (
+                <div style={{ border: "1px solid #0A0F3C", backgroundColor: "#fff" }}>
+                  {trin && (
+                    <div style={{ backgroundColor: "#0A0F3C", color: "#fff", padding: "10px 14px", fontSize: "0.95rem" }}>{trin}</div>
+                  )}
+                  {maalinger.length > 0 && (
+                    <div style={{ padding: "10px 14px" }}>
+                      {maalinger.map((sel, i) => {
+                        const a = calculateAlbedoForSelection(sel);
+                        if (a === null) return null;
+                        return (
+                          <div key={sel.id} style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap", padding: "4px 0", borderTop: i ? "1px solid #e5e7eb" : "none" }}>
+                            <span style={{ fontWeight: 600, minWidth: "7rem" }}>{sel.areaName || `Måleområde ${i + 1}`}</span>
+                            <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0A0F3C", fontVariantNumeric: "tabular-nums" }}>{fmtAlbedo(a)}</span>
+                            <span style={{ fontSize: "0.85rem", color: "#555" }}>kaster {Math.round(a)} % af lyset tilbage, beholder {100 - Math.round(a)} %</span>
+                          </div>
+                        );
+                      })}
+                      <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "6px" }}>
+                        Træk flere firkanter for at måle flere overflader. Notér tallene — eller tryk «Gem måling» nederst.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "20px", minWidth: 0 }}>
             <div
               style={{
                 border: "1px solid #ddd",
@@ -1018,36 +1049,38 @@ const SimpleAlbedo = () => {
                       />
                       {selection.isReference && !selection.isStandard && (
                         <Text
-                          x={selection.x * imageScale + imagePosition.x + (selection.width * imageScale) / 2}
-                          y={selection.y * imageScale + imagePosition.y + (selection.height * imageScale) / 2}
-                          text={(selection.areaName || "REFERENCE").toUpperCase()}
-                          fontSize={14}
+                          x={selection.x * imageScale + imagePosition.x}
+                          y={Math.max(selection.y * imageScale + imagePosition.y - 17, 2)}
+                          text={(selection.areaName || "reference").replace("Reference: ", "")}
+                          fontSize={13}
                           fontFamily="Arial"
-                          fill="#ff0000"
-                          align="center"
-                          verticalAlign="middle"
-                          offsetX={0}
-                          offsetY={6}
                           fontStyle="bold"
+                          fill="#ffffff"
+                          shadowColor="#000000"
+                          shadowBlur={4}
+                          shadowOpacity={0.9}
                         />
                       )}
                       {!selection.isReference && (() => {
                         const albedo = calculateAlbedoForSelection(selection);
-                        const displayText = selection.areaName 
-                          ? `${selection.areaName}\n${albedo !== null ? albedo.toFixed(1) + '%' : ''}`
-                          : (albedo !== null ? albedo.toFixed(1) + '%' : '');
+                        const displayText = selection.areaName
+                          ? `${selection.areaName}\n${albedo !== null ? fmtAlbedo(albedo) : ''}`
+                          : (albedo !== null ? fmtAlbedo(albedo) : '');
                         return displayText ? (
                           <Text
-                            x={selection.x * imageScale + imagePosition.x + (selection.width * imageScale) / 2}
-                            y={selection.y * imageScale + imagePosition.y + (selection.height * imageScale) / 2}
+                            x={selection.x * imageScale + imagePosition.x}
+                            y={selection.y * imageScale + imagePosition.y}
+                            width={selection.width * imageScale}
+                            height={selection.height * imageScale}
                             text={displayText}
-                            fontSize={12}
+                            fontSize={15}
                             fontFamily="Arial"
-                            fill="#4a90e2"
+                            fill="#ffffff"
+                            shadowColor="#000000"
+                            shadowBlur={5}
+                            shadowOpacity={0.95}
                             align="center"
                             verticalAlign="middle"
-                            offsetX={0}
-                            offsetY={6}
                             fontStyle="bold"
                           />
                         ) : null;
@@ -1084,7 +1117,7 @@ const SimpleAlbedo = () => {
 
             {/* Detaljerede målinger til højre */}
             {savedMeasurements.length > 0 && (
-              <div style={{ flex: "0 0 500px", overflowY: "auto", maxHeight: "calc(100vh - 160px)" }}>
+              <div style={{ flex: isMobile ? "1 1 auto" : "0 0 500px", overflowY: "auto", maxHeight: isMobile ? "none" : "calc(100vh - 160px)" }}>
                 <div style={{ backgroundColor: "#ffffff", padding: "20px", borderRadius: 0, border: "1px solid #e5e7eb" }}>
                   <h3 style={{ marginTop: 0 }}>Detaljerede resultater</h3>
                   {savedMeasurements.map((measurement, idx) => (
@@ -1174,7 +1207,7 @@ const SimpleAlbedo = () => {
                                 <div style={{ marginTop: "4px", marginLeft: "8px", fontSize: "0.8rem", color: "#374151" }}>
                                   <div>Pixel værdi: <strong>{result.rawPixelValue.toFixed(2)}</strong></div>
                                   <div>Kalibrering: <strong>{result.calibration || "—"}</strong></div>
-                                  <div>Albedo: <strong>{result.albedo.toFixed(1)}%</strong></div>
+                                  <div>Albedo: <strong>{fmtAlbedo(result.albedo)}</strong> ({result.albedo.toFixed(1)} %)</div>
                                   <div style={{ marginTop: "4px", color: "#059669", fontWeight: 600 }}>Resultat: {result.albedo.toFixed(2)}% albedo</div>
                                 </div>
                               </div>
@@ -1187,6 +1220,7 @@ const SimpleAlbedo = () => {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </>
       )}
@@ -1217,9 +1251,28 @@ const SimpleAlbedo = () => {
           >
             <h2 style={{ marginTop: 0, marginBottom: "15px" }}>Vælg billedtype</h2>
             <p style={{ marginBottom: "20px", color: "#666" }}>
-              Hvilken type billede har du uploadet?
+              Hvad er det for et billede?
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+              <button
+                onClick={() => handleImageTypeSelection('photo')}
+                style={{
+                  padding: "15px 20px",
+                  backgroundColor: "#0A0F3C",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 0,
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  textAlign: "left",
+                }}
+              >
+                📷 Selvtaget foto
+                <div style={{ fontSize: "0.85rem", fontWeight: 400, marginTop: "5px", opacity: 0.9 }}>
+                  Mit eget foto med referencekortet i billedet — det skal du vælge, hvis du har målt i skolegården
+                </div>
+              </button>
               <button
                 onClick={() => handleImageTypeSelection('satellite')}
                 style={{
@@ -1236,26 +1289,7 @@ const SimpleAlbedo = () => {
               >
                 🛰️ Satellitbillede
                 <div style={{ fontSize: "0.85rem", fontWeight: 400, marginTop: "5px", opacity: 0.9 }}>
-                  Kalibreret reflektansbillede (fx Sentinel-2) — albedo aflæses direkte
-                </div>
-              </button>
-              <button
-                onClick={() => handleImageTypeSelection('photo')}
-                style={{
-                  padding: "15px 20px",
-                  backgroundColor: "#4a90e2",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 0,
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  textAlign: "left",
-                }}
-              >
-                📷 Selvtaget foto
-                <div style={{ fontSize: "0.85rem", fontWeight: 400, marginTop: "5px", opacity: 0.9 }}>
-                  Eget foto med det printede referencekort (sort + hvidt felt) i billedet
+                  Et satellitbillede uden referencekort (fx Sentinel-2 fra Copernicus Browser)
                 </div>
               </button>
             </div>
