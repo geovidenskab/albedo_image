@@ -30,6 +30,8 @@ const SimpleAlbedo = () => {
     { albedo: 75, label: "hvidt papir" },
   ];
   const [refPatches, setRefPatches] = useState(STANDARD_PATCHES);
+  // Andel af et felts pixels med en kanal ≥ 250, før feltet kaldes overeksponeret
+  const MAETTET_GRAENSE = 0.10;
   // Kalibreringen forudsætter mørkest-først; sortér altid efter albedo
   const REFERENCE_PATCHES = [...refPatches].sort((a, b) => a.albedo - b.albedo);
   const [imageType, setImageType] = useState(null); // 'satellite' or 'photo'
@@ -959,6 +961,12 @@ const SimpleAlbedo = () => {
               } else if (maalinger.length === 0) {
                 trin = <>Trin {iAlt} af {iAlt}: Træk en firkant på den <b>overflade, du vil måle</b></>;
               }
+              // Overeksponering: er en stor del af et felt helt hvidt, kendes feltets sande
+              // lysstyrke ikke. Et udbrændt referencefelt gør ALLE tal i billedet for høje;
+              // en udbrændt måleflade (fx sne, der er lysere end papiret) får for lavt et tal.
+              // Grænsen er 10 %, så enkelte hvide pixels (støj, genskin) ikke giver alarm.
+              const erMaettet = (sel) => (getPixelValues(sel)?.saturatedFraction || 0) > MAETTET_GRAENSE;
+              const refMaettet = imageType === 'photo' && selections.some((sel) => sel.isReference && erMaettet(sel));
               return (
                 <div style={{ border: "1px solid #0A0F3C", backgroundColor: "#fff" }}>
                   {egenReference && refPatches.length === 1 && (
@@ -983,6 +991,13 @@ const SimpleAlbedo = () => {
                       </span>
                     </div>
                   )}
+                  {refMaettet && (
+                    <div role="alert" style={{ padding: "10px 14px", backgroundColor: "#fff4d6", borderBottom: "1px solid #e0a020", color: "#5c3a00", fontSize: "0.9rem" }}>
+                      {egenReference
+                        ? <><b>Jeres reference er overeksponeret</b> — den er helt hvid i billedet, så tallene bliver for høje. Vælg et stykke, der ikke er helt hvidt, eller et andet billede.</>
+                        : <><b>Det hvide felt er overeksponeret</b> — det er helt hvidt i billedet, så tallene bliver for høje. Tag billedet igen i skygge, eller skru ned for lysstyrken.</>}
+                    </div>
+                  )}
                   {trin && (
                     <div style={{ backgroundColor: "#0A0F3C", color: "#fff", padding: "10px 14px", fontSize: "0.95rem" }}>{trin}</div>
                   )}
@@ -996,6 +1011,9 @@ const SimpleAlbedo = () => {
                             <span style={{ fontWeight: 600, minWidth: "7rem" }}>{sel.areaName || `Måleområde ${i + 1}`}</span>
                             <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0A0F3C", fontVariantNumeric: "tabular-nums" }}>{fmtAlbedo(a)}</span>
                             <span style={{ fontSize: "0.85rem", color: "#555" }}>kaster {Math.round(a)} % af lyset tilbage, beholder {100 - Math.round(a)} %</span>
+                            {erMaettet(sel) && (
+                              <span style={{ fontSize: "0.85rem", color: "#9a3412" }}>overeksponeret — det rigtige tal er højere</span>
+                            )}
                           </div>
                         );
                       })}
